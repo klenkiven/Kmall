@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html>
-
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/xhtml">
 	<head>
 		<meta charset="utf-8" />
 		<script src="/static/order/confirm/js/jquery-3.1.1.min.js"></script>
@@ -75,10 +74,16 @@
 
 				</ul>
 				<ul class="header-right">
-					<li>尚硅谷<img src="/static/order/confirm/img/03.png" style="margin-bottom: 0px;margin-left3: 3px;" /><img src="/static/order/confirm/img/06.png" /></li>
-					<li>|</li>
+					<li style="border: 0;">
+						<a href="http://auth.kmall.com/login.html" style="color: red;"
+						   th:if="${session.loginUser == null}">你好，欢迎登录</a>
+						<a th:if="${session.loginUser != null}" >你好，[[${session.loginUser.nickname}]]</a>
+					</li>
+					<li>
+						<a href="http://auth.kmall.com/reg.html" th:if="${session.loginUser == null}">免费注册</a> |
+					<li>
 					<li class="spacer"></li>
-					<li><a href="">我的订单</a></li>
+					<li><a href="http://order.kmall.com/list.html">我的订单</a></li>
 					<li class="spacer"></li>
 					<li>
 						<a href="">我的KMALL</a>

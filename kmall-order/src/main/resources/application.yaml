@@ -28,6 +28,17 @@ spring:
   thymeleaf:
     cache: false
 
+  # Spring Session with Redis
+  redis:
+    host: 172.17.0.1
+    port: 6379
+  session:
+    store-type: redis
+    timeout: 30m
+    redis:
+      flush-mode: on_save
+      namespace: spring:session
+
 #mybatis
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
@@ -35,3 +46,9 @@ mybatis-plus:
     db-config:
       # 主键自增策略
       id-type: AUTO
+
+# Kmall Thread Pool
+kmall.thread:
+  idle: 50
+  maxSize: 200
+  keepAlive: 20
