@@ -1,5 +1,6 @@
 package xyz.klenkiven.kmall.ware.controller;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,7 @@ import xyz.klenkiven.kmall.ware.service.WareSkuService;
 import xyz.klenkiven.kmall.common.utils.PageUtils;
 import xyz.klenkiven.kmall.common.utils.R;
 import xyz.klenkiven.kmall.common.to.SkuHasStockTO;
+import xyz.klenkiven.kmall.ware.vo.FareResp;
 
 
 /**
@@ -27,6 +29,16 @@ import xyz.klenkiven.kmall.common.to.SkuHasStockTO;
 public class WareSkuController {
     @Autowired
     private WareSkuService wareSkuService;
+
+    /**
+     * [RPC] Query SKU has Stock
+     * /ware/waresku/has-stock
+     */
+    @PostMapping("/fare")
+    public Result<FareResp> getFare(@RequestParam Long addrId) {
+        FareResp result = wareSkuService.getFare(addrId);
+        return Result.ok(result);
+    }
 
     /**
      * [RPC] Query SKU has Stock

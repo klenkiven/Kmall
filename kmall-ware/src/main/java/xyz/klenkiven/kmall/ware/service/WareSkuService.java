@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import xyz.klenkiven.kmall.common.utils.PageUtils;
 import xyz.klenkiven.kmall.ware.entity.WareSkuEntity;
 import xyz.klenkiven.kmall.common.to.SkuHasStockTO;
+import xyz.klenkiven.kmall.ware.vo.FareResp;
 
 import java.util.List;
 import java.util.Map;
@@ -28,5 +29,11 @@ public interface WareSkuService extends IService<WareSkuEntity> {
      * Query SKU has Stock
      */
     List<SkuHasStockTO> getSkuHasStock(List<Long> skuIds);
+
+    /**
+     * Get Fare
+     * @return
+     */
+    FareResp getFare(Long addrId);
 }
 

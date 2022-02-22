@@ -1,9 +1,11 @@
 package xyz.klenkiven.kmall.ware.service.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -18,9 +20,12 @@ import xyz.klenkiven.kmall.common.utils.Query;
 import xyz.klenkiven.kmall.common.utils.R;
 import xyz.klenkiven.kmall.ware.dao.WareSkuDao;
 import xyz.klenkiven.kmall.ware.entity.WareSkuEntity;
+import xyz.klenkiven.kmall.ware.feign.MemberFeignService;
 import xyz.klenkiven.kmall.ware.feign.SkuFeignService;
 import xyz.klenkiven.kmall.ware.service.WareSkuService;
 import xyz.klenkiven.kmall.common.to.SkuHasStockTO;
+import xyz.klenkiven.kmall.ware.vo.FareResp;
+import xyz.klenkiven.kmall.ware.vo.MemberAddressDTO;
 
 
 @Service("wareSkuService")
@@ -28,6 +33,7 @@ import xyz.klenkiven.kmall.common.to.SkuHasStockTO;
 public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> implements WareSkuService {
 
     private final SkuFeignService skuFeignService;
+    private final MemberFeignService memberFeignService;
 
     @Override
     public PageUtils queryPage(Map<String, Object> params) {
@@ -85,6 +91,16 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
                     hasStockVO.setHasStock(stock != null && stock > 0);
                     return hasStockVO;
                 }).collect(Collectors.toList());
+    }
+
+    @Override
+    public FareResp getFare(Long addrId) {
+        FareResp fareResp = new FareResp();
+        MemberAddressDTO data = memberFeignService.getAddress(addrId)
+                        .getData("memberReceiveAddress", new TypeReference<>() {});
+        fareResp.setFare(new BigDecimal(addrId % 12));
+        fareResp.setAddress(data);
+        return fareResp;
     }
 
 }

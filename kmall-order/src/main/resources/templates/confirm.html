@@ -602,8 +602,8 @@
 			</div>
 
 			<!--地址-->
-			<div class="top-3" th:each="addr:${orderConfirmData.getAddress()}">
-				<p>[[${addr.name}]]</p><span>[[${addr.name}]]  [[${addr.province}]]  [[${addr.detailAddress}]]  [[${addr.phone}]]</span>
+			<div class="top-3 addr-item" th:each="addr:${orderConfirmData.getAddress()}">
+				<p th:attr="def=${addr.defaultStatus}, addr-id=${addr.id}">[[${addr.name}]]</p><span>[[${addr.name}]]  [[${addr.province}]]  [[${addr.detailAddress}]]  [[${addr.phone}]]</span>
 			</div>
 			<p class="p2">更多地址︾</p>
 			<div class="hh1"/>
@@ -715,7 +715,7 @@
 				</p>
 				<p class="qian_y">
 					<span>运费： </span>
-					<span class="rmb"> &nbsp ￥0.00</span>
+					<span class="rmb"> &nbsp ￥<b id="fareEle"></b></span>
 				</p>
 				<p class="qian_y">
 					<span>服务费： </span>
@@ -729,8 +729,8 @@
 			</div>
 
 			<div class="yfze">
-				<p class="yfze_a"><span class="z">应付总额：</span><span class="hq">￥[[${#numbers.formatDecimal(orderConfirmData.payPrice, 1, 2)}]]</span></p>
-				<p class="yfze_b">寄送至：  收货人：</p>
+				<p class="yfze_a"><span class="z">应付总额：</span><span class="hq">￥<b id="totalEle"></b></span></p>
+				<p class="yfze_b">寄送至：<b id="to-address-ele"></b>  收货人：<b id="receiverEle"></b></p>
 			</div>
 			<button class="tijiao">提交订单</button>
 		</div>
@@ -965,9 +965,29 @@
                 },function(){
                     $('.h-r-1').css('display','none')
                 })
+				heightlight()
             })
 
+			function heightlight() {
+				$(".addr-item p").css({"border": "2px solid gray"})
+				$(".addr-item p[def=1]").css({"border": "2px solid red"})
+				var addrId = $(".addr-item p[def=1]").attr("addr-id");
+				$.post("http://kmall.com/api/ware/waresku/fare?addrId=" + addrId, function (data) {
+					console.log(data.data)
+					var fare = data.data.fare*1;
+					$("#fareEle").text(fare)
+					var total = [[${#numbers.formatDecimal(orderConfirmData.payPrice, 1, 2)}]];
+					$("#totalEle").text(total*1 + fare)
+					$("#to-address-ele").text(data.data.address.detailAddress)
+					$("#receiverEle").text(data.data.address.name)
+				});
+			}
 
+			$(".addr-item p").click(function () {
+				$(".addr-item p").attr("def", 0)
+				$(this).attr("def", 1)
+				heightlight()
+			})
 		</script>
 	</body>
 
