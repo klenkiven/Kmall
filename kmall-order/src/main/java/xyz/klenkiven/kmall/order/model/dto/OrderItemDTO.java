@@ -19,5 +19,7 @@ public class OrderItemDTO {
     private BigDecimal price;       // 单价
     private Integer count;          // 当前商品数量
     private BigDecimal totalPrice;  // 总价
+    private Boolean hasStock = false;// Has Stock
+    private BigDecimal weight;      // Item weight
 
 }

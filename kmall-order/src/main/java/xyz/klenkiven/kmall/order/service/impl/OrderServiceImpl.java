@@ -7,12 +7,14 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.stream.Collectors;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
+import xyz.klenkiven.kmall.common.to.SkuHasStockTO;
 import xyz.klenkiven.kmall.common.to.UserLoginTO;
 import xyz.klenkiven.kmall.common.utils.PageUtils;
 import xyz.klenkiven.kmall.common.utils.Query;
@@ -22,6 +24,7 @@ import xyz.klenkiven.kmall.order.dao.OrderDao;
 import xyz.klenkiven.kmall.order.entity.OrderEntity;
 import xyz.klenkiven.kmall.order.feign.CartFeignService;
 import xyz.klenkiven.kmall.order.feign.MemberFeignService;
+import xyz.klenkiven.kmall.order.feign.WareFeignService;
 import xyz.klenkiven.kmall.order.interceptor.UserLoginInterceptor;
 import xyz.klenkiven.kmall.order.model.dto.MemberAddressDTO;
 import xyz.klenkiven.kmall.order.model.dto.OrderItemDTO;
@@ -34,6 +37,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
     private final MemberFeignService memberFeignService;
     private final CartFeignService cartFeignService;
+    private final WareFeignService wareFeignService;
 
     private final Executor executor;
 
@@ -54,7 +58,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         // Make RequestAttribute to all of the thread
         RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
 
-        // [FEIGN] Member Address;
+        // [FEIGN] Member Address
         CompletableFuture<Void> addressFuture = CompletableFuture.runAsync(() -> {
             RequestContextHolder.setRequestAttributes(requestAttributes);
             Result<List<MemberAddressDTO>> address = memberFeignService.getAddress(user.getId());
@@ -66,7 +70,15 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             RequestContextHolder.setRequestAttributes(requestAttributes);
             Result<List<OrderItemDTO>> checkedItem = cartFeignService.getCheckedItem();
             confirmVO.setItems(checkedItem.getData());
-        }, executor);
+        }, executor).thenRunAsync(()->{
+            // [FEIGN] Has Stock Bundled Query
+            RequestContextHolder.setRequestAttributes(requestAttributes);
+            List<Long> skuIdList = confirmVO.getItems().stream()
+                    .map(OrderItemDTO::getSkuId).collect(Collectors.toList());
+            Map<Long, Boolean> hasStockMap = wareFeignService.getSkuHasStock(skuIdList).getData().stream()
+                    .collect(Collectors.toMap(SkuHasStockTO::getSkuId, SkuHasStockTO::getHasStock));
+            confirmVO.setHasStockMap(hasStockMap);
+        });
 
         // Get User Credit
         confirmVO.setIntegration(user.getIntegration());
@@ -78,9 +90,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
     public OrderServiceImpl(MemberFeignService memberFeignService,
                             CartFeignService cartFeignService,
-                            ThreadPoolExecutor executor) {
+                            WareFeignService wareFeignService, ThreadPoolExecutor executor) {
         this.memberFeignService = memberFeignService;
         this.cartFeignService = cartFeignService;
+        this.wareFeignService = wareFeignService;
         this.executor = executor;
     }
 }

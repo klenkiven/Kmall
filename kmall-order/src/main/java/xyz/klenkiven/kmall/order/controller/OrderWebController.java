@@ -1,5 +1,6 @@
 package xyz.klenkiven.kmall.order.controller;
 
+import com.alibaba.fastjson.JSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
@@ -20,7 +21,7 @@ public class OrderWebController {
     @GetMapping("/toTrade")
     public String toTrade(Model model) {
         OrderConfirmVO confirmVO = orderService.confirmOrder();
-        log.info("orderConfirmData = {}", confirmVO);
+        log.info("orderConfirmData = {}", JSON.toJSONString(confirmVO));
         model.addAttribute("orderConfirmData", confirmVO);
         return "confirm";
     }

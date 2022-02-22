@@ -8,6 +8,7 @@ import xyz.klenkiven.kmall.order.model.dto.OrderItemDTO;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Order Confirm Page View Object
@@ -26,6 +27,20 @@ public class OrderConfirmVO {
     /** 优惠券（会员积分） **/
     @Getter @Setter
     private Integer integration;
+
+    /** Has Stock Map */
+    @Setter @Getter
+    private Map<Long, Boolean> hasStockMap;
+
+    /** Total Item Count */
+    public Integer getTotalCount() {
+        if (items == null || items.size() == 0) { return 0; }
+        int count = 0;
+        for (OrderItemDTO i : items) {
+            count += i.getCount();
+        }
+        return count;
+    }
 
     /** 总商品金额 **/
     //BigDecimal total;
