@@ -1,4 +1,4 @@
-package xyz.klenkiven.kmall.order;
+package xyz.klenkiven.kmall.order.config;
 
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;

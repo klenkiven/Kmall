@@ -3,6 +3,7 @@ package xyz.klenkiven.kmall.order.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import xyz.klenkiven.kmall.common.utils.PageUtils;
 import xyz.klenkiven.kmall.order.entity.OrderEntity;
+import xyz.klenkiven.kmall.order.model.vo.OrderConfirmVO;
 
 import java.util.Map;
 
@@ -16,5 +17,11 @@ import java.util.Map;
 public interface OrderService extends IService<OrderEntity> {
 
     PageUtils queryPage(Map<String, Object> params);
+
+    /**
+     * Order Confirm Page needed data
+     * @return data
+     */
+    OrderConfirmVO confirmOrder();
 }
 

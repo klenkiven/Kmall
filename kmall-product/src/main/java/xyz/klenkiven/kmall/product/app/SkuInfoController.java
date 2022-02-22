@@ -1,15 +1,13 @@
 package xyz.klenkiven.kmall.product.app;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import xyz.klenkiven.kmall.common.utils.Result;
 import xyz.klenkiven.kmall.product.entity.SkuInfoEntity;
 import xyz.klenkiven.kmall.product.service.SkuInfoService;
 import xyz.klenkiven.kmall.common.utils.PageUtils;
@@ -29,6 +27,15 @@ import xyz.klenkiven.kmall.common.utils.R;
 public class SkuInfoController {
     @Autowired
     private SkuInfoService skuInfoService;
+
+    /**
+     * Get Current SKU Price
+     */
+    @GetMapping("/currentPrice/{skuId}")
+    public Result<BigDecimal> getCurrentPrice(@PathVariable Long skuId) {
+        SkuInfoEntity byId = skuInfoService.getById(skuId);
+        return Result.ok(byId.getPrice());
+    }
 
     /**
      * 列表

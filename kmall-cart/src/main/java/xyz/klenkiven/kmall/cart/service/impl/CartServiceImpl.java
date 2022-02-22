@@ -15,9 +15,11 @@ import xyz.klenkiven.kmall.cart.vo.CartItemVO;
 import xyz.klenkiven.kmall.cart.vo.CartVO;
 import xyz.klenkiven.kmall.cart.vo.UserInfoVO;
 import xyz.klenkiven.kmall.common.to.SkuInfoTO;
+import xyz.klenkiven.kmall.common.to.UserLoginTO;
 import xyz.klenkiven.kmall.common.utils.R;
 import xyz.klenkiven.kmall.common.utils.Result;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -25,6 +27,7 @@ import java.util.stream.Collectors;
 
 /**
  * Cart Service Implements
+ *
  * @author klenkiven
  */
 // @Slf4j // private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(LogExample.class);
@@ -33,7 +36,6 @@ public class CartServiceImpl implements CartService {
 
     private static final Logger log = LoggerFactory.getLogger(CartService.class);
     public static final String CART_PREFIX = "kmall:cart:";
-    public static final String INVALID_TEMP_CART = "-1";
 
     private final StringRedisTemplate redisTemplate;
     private final ProductFeignService productFeignService;
@@ -77,22 +79,18 @@ public class CartServiceImpl implements CartService {
 
         // Merge Temp Cart and delete temp cart, IF temp cart EXIST
         if (userInfoVO.getUserId() != null) {
-            if (!INVALID_TEMP_CART.equals(userInfoVO.getUserKey())) {
+            String cartKey = CART_PREFIX + userInfoVO.getUserKey();
+            BoundHashOperations<String, Object, Object> tempCartOps = redisTemplate.boundHashOps(cartKey);
 
-                String cartKey = CART_PREFIX + userInfoVO.getUserKey();
-                BoundHashOperations<String, Object, Object> tempCartOps = redisTemplate.boundHashOps(cartKey);
-
-                List<Object> tempCartItemList = tempCartOps.values();
-                List<CartItemVO> tempItemList = getCartItemList(tempCartItemList);
-                if (tempItemList != null) {
-                    // Merge Cart
-                    for (CartItemVO item : tempItemList) {
-                        addToCart(item.getCount(), item.getSkuId());
-                    }
-                    // Delete Temp Cart
-                    deleteCart(userInfoVO.getUserKey());
-                    userInfoVO.setUserKey(INVALID_TEMP_CART);
+            List<Object> tempCartItemList = tempCartOps.values();
+            List<CartItemVO> tempItemList = getCartItemList(tempCartItemList);
+            if (tempItemList != null) {
+                // Merge Cart
+                for (CartItemVO item : tempItemList) {
+                    addToCart(item.getCount(), item.getSkuId());
                 }
+                // Delete Temp Cart
+                deleteCart(userInfoVO.getUserKey());
             }
         }
 
@@ -126,9 +124,26 @@ public class CartServiceImpl implements CartService {
         cartOps.delete(skuId.toString());
     }
 
+    @Override
+    public List<CartItemVO> getCheckedItem() {
+        UserInfoVO userInfo = CartInterceptor.threadLocal.get();
+        if (userInfo.getUserId() != null) {
+            return getCart().getItems().stream()
+                    .filter(CartItemVO::getCheck)
+                    .peek((item) -> {
+                        // Get Current Price
+                        BigDecimal currentPrice =
+                                productFeignService.getCurrentPrice(item.getSkuId()).getData();
+                        item.setPrice(currentPrice);
+                    }).collect(Collectors.toList());
+        }
+        return null;
+    }
+
     /**
      * If Item is not in this cart, get SKU info
-     * @param num item count
+     *
+     * @param num   item count
      * @param skuId item SKU id
      * @return Cart item Object
      */
@@ -162,6 +177,7 @@ public class CartServiceImpl implements CartService {
 
     /**
      * Get Cart Operations
+     *
      * @return hash ops
      */
     private BoundHashOperations<String, Object, Object> getCartOps() {
@@ -177,6 +193,7 @@ public class CartServiceImpl implements CartService {
 
     /**
      * Get Item List from Cart Object List
+     *
      * @param values values
      * @return cart item
      */

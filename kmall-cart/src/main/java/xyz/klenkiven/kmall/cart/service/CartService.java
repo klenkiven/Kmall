@@ -3,6 +3,8 @@ package xyz.klenkiven.kmall.cart.service;
 import xyz.klenkiven.kmall.cart.vo.CartItemVO;
 import xyz.klenkiven.kmall.cart.vo.CartVO;
 
+import java.util.List;
+
 /**
  * Cart Service - Do Cart Related Service
  * @author klenkiven
@@ -55,4 +57,11 @@ public interface CartService {
      * @param skuId sku Id
      */
     void deleteItem(Long skuId);
+
+    /**
+     * Get Cart Checked Items
+     * @return items
+     */
+    List<CartItemVO> getCheckedItem();
+
 }

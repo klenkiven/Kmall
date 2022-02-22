@@ -5,10 +5,14 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import xyz.klenkiven.kmall.cart.service.CartService;
 import xyz.klenkiven.kmall.cart.vo.CartItemVO;
 import xyz.klenkiven.kmall.cart.vo.CartVO;
+import xyz.klenkiven.kmall.common.utils.Result;
+
+import java.util.List;
 
 /**
  * Cart Web Controller
@@ -19,6 +23,16 @@ import xyz.klenkiven.kmall.cart.vo.CartVO;
 public class CartController {
 
     private final CartService cartService;
+
+    /**
+     * Cart Checked Items
+     */
+    @GetMapping("/userCheckedItem")
+    @ResponseBody
+    public Result<List<CartItemVO>> getCheckedItem() {
+        List<CartItemVO> checkedItems = cartService.getCheckedItem();
+        return Result.ok(checkedItems);
+    }
 
     /**
      * Cart Page

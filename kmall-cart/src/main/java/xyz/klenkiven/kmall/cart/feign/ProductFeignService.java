@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import xyz.klenkiven.kmall.common.utils.R;
 import xyz.klenkiven.kmall.common.utils.Result;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -27,5 +28,11 @@ public interface ProductFeignService {
      */
     @GetMapping("/product/skusaleattrvalue/stringList/{skuId}")
     public Result<List<String>> skuSaleAttrStringList(@PathVariable Long skuId);
+
+    /**
+     * Get Current Item Price
+     */
+    @GetMapping("/product/skuinfo/currentPrice/{skuId}")
+    public Result<BigDecimal> getCurrentPrice(@PathVariable Long skuId);
 
 }

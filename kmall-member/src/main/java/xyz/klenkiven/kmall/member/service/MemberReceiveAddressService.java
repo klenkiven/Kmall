@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import xyz.klenkiven.kmall.common.utils.PageUtils;
 import xyz.klenkiven.kmall.member.entity.MemberReceiveAddressEntity;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -16,5 +17,12 @@ import java.util.Map;
 public interface MemberReceiveAddressService extends IService<MemberReceiveAddressEntity> {
 
     PageUtils queryPage(Map<String, Object> params);
+
+    /**
+     * Get Certain Member All Address
+     * @param memberId userId
+     * @return address list
+     */
+    List<MemberReceiveAddressEntity> getAddresses(Long memberId);
 }
 
