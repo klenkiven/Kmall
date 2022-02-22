@@ -24,6 +24,10 @@ spring:
     username: guest
     password: guest
 
+  # Thymeleaf
+  thymeleaf:
+    cache: false
+
 #mybatis
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
