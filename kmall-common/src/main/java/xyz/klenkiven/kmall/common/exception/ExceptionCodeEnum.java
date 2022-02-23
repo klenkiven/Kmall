@@ -24,7 +24,10 @@ public enum ExceptionCodeEnum {
     PHONE_EXIST_ERROR(150002, "Phone has existed"),
 
     /** Username or Password Invalid */
-    USERNAME_PASSWORD_INVALID(150003, "Username or Password is invalid");
+    USERNAME_PASSWORD_INVALID(150003, "Username or Password is invalid"),
+
+    /** No Stock Error */
+    NO_STOCK_ERROR(210000, "No Stock Error");
 
     final Integer code;
     final String message;

@@ -5,6 +5,8 @@ import xyz.klenkiven.kmall.ware.entity.WareSkuEntity;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 
+import java.util.List;
+
 /**
  * 商品库存
  * 
@@ -24,4 +26,21 @@ public interface WareSkuDao extends BaseMapper<WareSkuEntity> {
      * Get Sku Stock
      */
     Long getStockBySkuId(@Param("skuId") Long skuId);
+
+    /**
+     * Get all available ware for sku
+     * @param skuId sku id
+     * @param count item count
+     * @return ware id
+     */
+    List<Long> listWareIdHasStock(@Param("skuId") Long skuId, @Param("count") Integer count);
+
+    /**
+     * Lock SKU Stock if effect row is 0, fail
+     * @param skuId sku id
+     * @param wareId ware id
+     * @param count count
+     * @return effect row
+     */
+    Long lockSkuStock(@Param("skuId") Long skuId, @Param("wareId") Long wareId, @Param("count") Integer count);
 }

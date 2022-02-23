@@ -19,11 +19,19 @@
         where
             ware_id = #{wareId} and sku_id = #{skuId}
     </update>
-    
+    <update id="lockSkuStock">
+        update kmall_wms.wms_ware_sku set stock_locked = stock_locked + #{count}
+        where sku_id = #{skuId} and ware_id = #{wareId} and stock-stock_locked >= #{count}
+    </update>
+
     <select id="getStockBySkuId" resultType="java.lang.Long">
         select sum(`kmall_wms`.wms_ware_sku.stock - `kmall_wms`.wms_ware_sku.stock_locked)
         from `kmall_wms`.wms_ware_sku
         where sku_id = #{skuId}
+    </select>
+    <select id="listWareIdHasStock" resultType="java.lang.Long">
+        select ware_id from kmall_wms.wms_ware_sku
+        where sku_id = #{skuId} and stock - stock_locked >= #{count}
     </select>
 
 </mapper>

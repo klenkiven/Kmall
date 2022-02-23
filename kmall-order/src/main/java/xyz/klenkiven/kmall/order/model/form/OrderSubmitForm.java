@@ -2,6 +2,8 @@ package xyz.klenkiven.kmall.order.model.form;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 /**
  * Submit Order Form
  * @author klenkiven
@@ -19,7 +21,7 @@ public class OrderSubmitForm {
     private String orderToken;
 
     /** Price in Page in order to Verify Price Validity */
-    private String payPrice;
+    private BigDecimal payPrice;
 
     /** Order Note */
     private String note;

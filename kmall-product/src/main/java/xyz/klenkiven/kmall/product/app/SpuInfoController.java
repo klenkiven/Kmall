@@ -3,9 +3,11 @@ package xyz.klenkiven.kmall.product.app;
 import java.util.Arrays;
 import java.util.Map;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import xyz.klenkiven.kmall.common.utils.Result;
 import xyz.klenkiven.kmall.product.entity.SpuInfoEntity;
 import xyz.klenkiven.kmall.product.service.SpuInfoService;
 import xyz.klenkiven.kmall.common.utils.PageUtils;
@@ -27,6 +29,15 @@ import xyz.klenkiven.kmall.product.vo.SpuSaveVO;
 public class SpuInfoController {
     @Autowired
     private SpuInfoService spuInfoService;
+
+    /**
+     * [FEIGN] Get Spu info from sku
+     */
+    @GetMapping("/from-sku/{skuId}")
+    public Result<SpuInfoEntity> fromSku(@PathVariable Long skuId) {
+        SpuInfoEntity spuInfo = spuInfoService.getSpuBySkuId(skuId);
+        return Result.ok(spuInfo);
+    }
 
     /**
      * 商品上架

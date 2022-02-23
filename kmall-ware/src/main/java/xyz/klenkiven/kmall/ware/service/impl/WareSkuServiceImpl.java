@@ -1,6 +1,7 @@
 package xyz.klenkiven.kmall.ware.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
@@ -14,18 +15,21 @@ import java.util.stream.Collectors;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.springframework.transaction.annotation.Transactional;
 import xyz.klenkiven.kmall.common.utils.PageUtils;
 import xyz.klenkiven.kmall.common.utils.Query;
 
 import xyz.klenkiven.kmall.common.utils.R;
 import xyz.klenkiven.kmall.ware.dao.WareSkuDao;
 import xyz.klenkiven.kmall.ware.entity.WareSkuEntity;
+import xyz.klenkiven.kmall.common.exception.NoStockException;
 import xyz.klenkiven.kmall.ware.feign.MemberFeignService;
 import xyz.klenkiven.kmall.ware.feign.SkuFeignService;
 import xyz.klenkiven.kmall.ware.service.WareSkuService;
 import xyz.klenkiven.kmall.common.to.SkuHasStockTO;
 import xyz.klenkiven.kmall.ware.vo.FareResp;
 import xyz.klenkiven.kmall.ware.vo.MemberAddressDTO;
+import xyz.klenkiven.kmall.ware.vo.WareSkuLockDTO;
 
 
 @Service("wareSkuService")
@@ -101,6 +105,51 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
         fareResp.setFare(new BigDecimal(addrId % 12));
         fareResp.setAddress(data);
         return fareResp;
+    }
+
+    @Transactional(rollbackFor = {Exception.class})
+    @Override
+    public Boolean orderLockStock(WareSkuLockDTO lock) {
+        // Query all available ware
+        List<SkuWareHasStock> wareHasStocks = lock.getLocks().stream().map(item -> {
+            SkuWareHasStock stock = new SkuWareHasStock();
+            stock.setSkuId(item.getSkuId());
+            stock.setCount(item.getCount());
+            List<Long> wareId = baseMapper.listWareIdHasStock(item.getSkuId(), item.getCount());
+            stock.setWareId(wareId);
+            return stock;
+        }).collect(Collectors.toList());
+
+        // Lock Stock
+        for (SkuWareHasStock wareHasStock : wareHasStocks) {
+            Long skuId = wareHasStock.getSkuId();
+            List<Long> wareIds = wareHasStock.getWareId();
+            if (wareIds == null || wareIds.size() == 0) {
+                throw new NoStockException(skuId);
+            }
+            // Do Lock
+            boolean locked = true;
+            for (Long wareId : wareIds) {
+                // Success return 1, Fail return 0
+                Long effectRow = baseMapper.lockSkuStock(skuId, wareId, wareHasStock.getCount());
+                if (effectRow == 1) { break; }
+                locked = false;
+            }
+            // Fail to Lock
+            if (!locked) {
+                throw new NoStockException(skuId);
+            }
+        }
+
+        // Success
+        return true;
+    }
+
+    @Data
+    static class SkuWareHasStock {
+        private Long skuId;
+        private Integer count;
+        private List<Long> wareId;
     }
 
 }

@@ -5,6 +5,7 @@ import xyz.klenkiven.kmall.common.utils.PageUtils;
 import xyz.klenkiven.kmall.ware.entity.WareSkuEntity;
 import xyz.klenkiven.kmall.common.to.SkuHasStockTO;
 import xyz.klenkiven.kmall.ware.vo.FareResp;
+import xyz.klenkiven.kmall.ware.vo.WareSkuLockDTO;
 
 import java.util.List;
 import java.util.Map;
@@ -35,5 +36,12 @@ public interface WareSkuService extends IService<WareSkuEntity> {
      * @return
      */
     FareResp getFare(Long addrId);
+
+    /**
+     * Lock Stock for Order
+     * @param lock order
+     * @return result
+     */
+    Boolean orderLockStock(WareSkuLockDTO lock);
 }
 
