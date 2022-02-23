@@ -32,6 +32,10 @@ public class OrderConfirmVO {
     @Setter @Getter
     private Map<Long, Boolean> hasStockMap;
 
+    /** Idempotent Token */
+    @Getter @Setter
+    private String token;
+
     /** Total Item Count */
     public Integer getTotalCount() {
         if (items == null || items.size() == 0) { return 0; }

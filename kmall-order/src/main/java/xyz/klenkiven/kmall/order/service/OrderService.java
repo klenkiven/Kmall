@@ -3,7 +3,9 @@ package xyz.klenkiven.kmall.order.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import xyz.klenkiven.kmall.common.utils.PageUtils;
 import xyz.klenkiven.kmall.order.entity.OrderEntity;
+import xyz.klenkiven.kmall.order.model.form.OrderSubmitForm;
 import xyz.klenkiven.kmall.order.model.vo.OrderConfirmVO;
+import xyz.klenkiven.kmall.order.model.vo.SubmitResultVO;
 
 import java.util.Map;
 
@@ -23,5 +25,12 @@ public interface OrderService extends IService<OrderEntity> {
      * @return data
      */
     OrderConfirmVO confirmOrder();
+
+    /**
+     * Do Order Submit
+     * @param form submit form
+     * @return result
+     */
+    SubmitResultVO submitOrder(OrderSubmitForm form);
 }
 

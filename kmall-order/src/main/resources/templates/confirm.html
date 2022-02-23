@@ -725,6 +725,10 @@
 					<span>退换无忧： </span>
 					<span class="rmb"> &nbsp ￥0.00</span>
 				</p>
+				<p class="qian_y">
+					<span>Idempoent Token： </span>
+					<span class="rmb"> &nbsp [[${orderConfirmData.token}]]</span>
+				</p>
 
 			</div>
 
@@ -732,7 +736,13 @@
 				<p class="yfze_a"><span class="z">应付总额：</span><span class="hq">￥<b id="totalEle"></b></span></p>
 				<p class="yfze_b">寄送至：<b id="to-address-ele"></b>  收货人：<b id="receiverEle"></b></p>
 			</div>
-			<button class="tijiao">提交订单</button>
+			<form action="/orderSubmit" method="post">
+				<input id="addr-id-input" type="hidden" name="addrId" />
+				<input id="pay-type-input" type="hidden" name="payType" />
+				<input id="pay-price-input" type="hidden" name="payPrice" />
+				<input type="hidden" name="token" th:value="${orderConfirmData.token}" />
+				<button class="tijiao">提交订单</button>
+			</form>
 		</div>
 		</div>
 
@@ -972,12 +982,20 @@
 				$(".addr-item p").css({"border": "2px solid gray"})
 				$(".addr-item p[def=1]").css({"border": "2px solid red"})
 				var addrId = $(".addr-item p[def=1]").attr("addr-id");
+				getFare(addrId)
+			}
+
+			function getFare(addrId) {
+				// Fill with Form
+				$("#addr-id-input").val(addrId)
+				// Do Ajax Request
 				$.post("http://kmall.com/api/ware/waresku/fare?addrId=" + addrId, function (data) {
 					console.log(data.data)
 					var fare = data.data.fare*1;
 					$("#fareEle").text(fare)
 					var total = [[${#numbers.formatDecimal(orderConfirmData.payPrice, 1, 2)}]];
 					$("#totalEle").text(total*1 + fare)
+					$("#pay-price-input").val(total*1 + fare)
 					$("#to-address-ele").text(data.data.address.detailAddress)
 					$("#receiverEle").text(data.data.address.name)
 				});

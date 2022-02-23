@@ -1,12 +1,17 @@
 package xyz.klenkiven.kmall.order.service.impl;
 
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -14,6 +19,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
+import xyz.klenkiven.kmall.common.constant.OrderConstant;
 import xyz.klenkiven.kmall.common.to.SkuHasStockTO;
 import xyz.klenkiven.kmall.common.to.UserLoginTO;
 import xyz.klenkiven.kmall.common.utils.PageUtils;
@@ -28,7 +34,9 @@ import xyz.klenkiven.kmall.order.feign.WareFeignService;
 import xyz.klenkiven.kmall.order.interceptor.UserLoginInterceptor;
 import xyz.klenkiven.kmall.order.model.dto.MemberAddressDTO;
 import xyz.klenkiven.kmall.order.model.dto.OrderItemDTO;
+import xyz.klenkiven.kmall.order.model.form.OrderSubmitForm;
 import xyz.klenkiven.kmall.order.model.vo.OrderConfirmVO;
+import xyz.klenkiven.kmall.order.model.vo.SubmitResultVO;
 import xyz.klenkiven.kmall.order.service.OrderService;
 
 
@@ -39,6 +47,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     private final CartFeignService cartFeignService;
     private final WareFeignService wareFeignService;
 
+    private final StringRedisTemplate redisTemplate;
     private final Executor executor;
 
     @Override
@@ -55,7 +64,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     public OrderConfirmVO confirmOrder() {
         OrderConfirmVO confirmVO = new OrderConfirmVO();
         UserLoginTO user = UserLoginInterceptor.loginUser.get();
-        // Make RequestAttribute to all of the thread
+        // Make RequestAttribute to all of threads
         RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
 
         // [FEIGN] Member Address
@@ -83,17 +92,61 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         // Get User Credit
         confirmVO.setIntegration(user.getIntegration());
 
+        // Idempotent Token and Save to Redis
+        String token = UUID.randomUUID().toString().replace("-", "");
+        confirmVO.setToken(token);
+        redisTemplate.opsForValue().set(
+                OrderConstant.USER_ORDER_TOKEN_PREFIX + user.getId(),
+                token,
+                30, TimeUnit.MINUTES
+        );
+
         CompletableFuture.allOf(addressFuture, cartItemFuture).join();
         return confirmVO;
+    }
+
+    @Override
+    public SubmitResultVO submitOrder(OrderSubmitForm form) {
+        SubmitResultVO result = new SubmitResultVO();
+        UserLoginTO user = UserLoginInterceptor.loginUser.get();
+
+        // Verify Idempotent Token with CAS Op
+        String orderTokenKey = OrderConstant.USER_ORDER_TOKEN_PREFIX + user.getId();
+        String redisCASScript =
+                "if redis.call('get', KEYS[1]) == ARGV[1] then" +
+                "    redis.call('del', KEYS[1])" +
+                "    return 1" +
+                "else" +
+                "    return 0" +
+                "end";
+        Long redisCas = redisTemplate.execute(RedisScript.of(redisCASScript, Long.class),
+                List.of(orderTokenKey),
+                form.getOrderToken());
+        // If Fail Return Fail Code
+        if (redisCas == null || redisCas == 0L) {
+            result.setCode(500);
+            return result;
+        }
+
+        // Create Order
+
+        // Verify Price
+
+        // Lock Quantity in Stock
+
+        return null;
     }
 
 
     public OrderServiceImpl(MemberFeignService memberFeignService,
                             CartFeignService cartFeignService,
-                            WareFeignService wareFeignService, ThreadPoolExecutor executor) {
+                            WareFeignService wareFeignService,
+                            StringRedisTemplate redisTemplate,
+                            ThreadPoolExecutor executor) {
         this.memberFeignService = memberFeignService;
         this.cartFeignService = cartFeignService;
         this.wareFeignService = wareFeignService;
+        this.redisTemplate = redisTemplate;
         this.executor = executor;
     }
 }
