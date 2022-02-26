@@ -23,6 +23,10 @@
         update kmall_wms.wms_ware_sku set stock_locked = stock_locked + #{count}
         where sku_id = #{skuId} and ware_id = #{wareId} and stock-stock_locked >= #{count}
     </update>
+    <update id="unlockStock">
+        update kmall_wms.wms_ware_sku set stock_locked = stock_locked + ${num}
+        where sku_id = #{skuId} and ware_id = #{wareId}
+    </update>
 
     <select id="getStockBySkuId" resultType="java.lang.Long">
         select sum(`kmall_wms`.wms_ware_sku.stock - `kmall_wms`.wms_ware_sku.stock_locked)

@@ -10,7 +10,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,12 +20,6 @@ import java.util.Map;
 @Configuration
 @EnableRabbit
 public class RabbitMQConfig {
-
-    @RabbitListener(queues = "stock.release.stock.queue")
-    public void listenRelease(Message message, Channel channel) throws IOException {
-        System.out.println("Order is delayed: " + new String(message.getBody()));
-        channel.basicAck(message.getMessageProperties().getDeliveryTag(), false);
-    }
 
     /**
      * Use Json Message Converter
@@ -42,7 +35,7 @@ public class RabbitMQConfig {
         Map<String, Object> argument = new HashMap<>();
         argument.put("x-dead-letter-exchange", "stock-event-exchange");
         argument.put("x-dead-letter-routing-key", "stock.release.stock.queue");
-        argument.put("x-message-ttl", 50 * 60 * 1000);
+        argument.put("x-message-ttl", 2 * 60 * 1000);
         System.out.println(argument);
         return new Queue(
                 "stock.delay.queue",

@@ -4,12 +4,9 @@ import java.util.Arrays;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import xyz.klenkiven.kmall.common.utils.Result;
 import xyz.klenkiven.kmall.order.entity.OrderEntity;
 import xyz.klenkiven.kmall.order.service.OrderService;
 import xyz.klenkiven.kmall.common.utils.PageUtils;
@@ -29,6 +26,15 @@ import xyz.klenkiven.kmall.common.utils.R;
 public class OrderController {
     @Autowired
     private OrderService orderService;
+
+    /**
+     * [FEIGN] Get Order Status
+     */
+    @GetMapping("/{orderSn}")
+    public Result<OrderEntity> getOrderStatus(@PathVariable String orderSn) {
+        OrderEntity orderEntity = orderService.getOrderByOrderSn(orderSn);
+        return Result.ok(orderEntity);
+    }
 
     /**
      * 列表

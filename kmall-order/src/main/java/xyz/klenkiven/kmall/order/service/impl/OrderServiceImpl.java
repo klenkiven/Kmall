@@ -186,9 +186,19 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             throw  new NoStockException();
         }
 
+        int i = 10/0;
+
         result.setOrder(orderCreate.getOrder());
         result.setCode(0);
         return result;
+    }
+
+    @Override
+    public OrderEntity getOrderByOrderSn(String orderSn) {
+        return this.getOne(
+                new QueryWrapper<OrderEntity>()
+                        .eq("order_sn", orderSn)
+        );
     }
 
     /**
