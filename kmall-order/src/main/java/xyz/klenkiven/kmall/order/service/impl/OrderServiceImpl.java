@@ -119,9 +119,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         return confirmVO;
     }
 
+    // @GlobalTransactional(rollbackFor = {Exception.class})
     @Transactional(rollbackFor = {Exception.class})
     @Override
     public SubmitResultVO submitOrder(OrderSubmitForm form) {
+//        log.info("start SEATA Global Transaction XID: {}, and Branch Type: {}", RootContext.getXID(), RootContext.getBranchType());
         SubmitResultVO result = new SubmitResultVO();
         UserLoginTO user = UserLoginInterceptor.loginUser.get();
         orderSubmitForm.set(form);

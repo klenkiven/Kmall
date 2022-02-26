@@ -8,8 +8,8 @@ spring:
     username: root
     password: root
 
-  # Alibaba Nacos Service Discovery
   cloud:
+    # Alibaba Nacos Service Discovery
     nacos:
       discovery:
         server-addr: localhost:8848
@@ -20,7 +20,7 @@ spring:
   rabbitmq:
     host: 172.17.0.1
     port: 5672
-    virtual-host: /
+    virtual-host: /kmall
     username: guest
     password: guest
 
@@ -52,3 +52,34 @@ kmall.thread:
   idle: 50
   maxSize: 200
   keepAlive: 20
+
+# Seata Config
+#seata:
+#  enabled: true
+#  tx-service-group: kmall_order_group
+#  enable-auto-data-source-proxy: true
+#  service:
+#    vgroup-mapping:
+#      kmall_order_group: default
+#    grouplist:
+#      default: localhost:8091
+#    enable-degrade: false
+#    disable-global-transaction: false
+#  config:
+#    type: nacos
+#    nacos:
+#      group: SEATA_GROUP
+#      server-addr: localhost:8848
+#      username:
+#      password:
+#      namespace: 8c64375f-60ad-4d54-b793-dbf9df64f849
+#  registry:
+#    type: nacos
+#    nacos:
+#      application: seata-server
+#      server-addr: localhost:8848
+#      group: SEATA_GROUP
+#      namespace: 8c64375f-60ad-4d54-b793-dbf9df64f849
+#      username:
+#      password:
+#      cluster: default

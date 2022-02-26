@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -15,7 +17,6 @@ import java.util.stream.Collectors;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import org.springframework.transaction.annotation.Transactional;
 import xyz.klenkiven.kmall.common.utils.PageUtils;
 import xyz.klenkiven.kmall.common.utils.Query;
 
@@ -35,6 +36,8 @@ import xyz.klenkiven.kmall.ware.vo.WareSkuLockDTO;
 @Service("wareSkuService")
 @RequiredArgsConstructor
 public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> implements WareSkuService {
+
+    private static final Logger log = LoggerFactory.getLogger(WareSkuService.class);
 
     private final SkuFeignService skuFeignService;
     private final MemberFeignService memberFeignService;
@@ -107,9 +110,10 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
         return fareResp;
     }
 
-    @Transactional(rollbackFor = {Exception.class})
     @Override
     public Boolean orderLockStock(WareSkuLockDTO lock) {
+//        System.out.println(RootContext.entries().toString());
+//        log.info("start RM Transation XID: {}, Branch TYpe: {}", RootContext.getXID(), RootContext.getBranchType());
         // Query all available ware
         List<SkuWareHasStock> wareHasStocks = lock.getLocks().stream().map(item -> {
             SkuWareHasStock stock = new SkuWareHasStock();

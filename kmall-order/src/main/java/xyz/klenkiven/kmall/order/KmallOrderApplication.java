@@ -11,6 +11,7 @@ import org.springframework.session.data.redis.config.annotation.web.http.EnableR
  * 酷商城-订单管理
  * @author klenkiven
  */
+//@EnableAutoDataSourceProxy
 @EnableFeignClients
 @EnableRedisHttpSession
 @EnableRabbit

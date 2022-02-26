@@ -9,6 +9,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
  * 酷商城-仓储服务
  * @author klenkiven
  */
+//@EnableAutoDataSourceProxy
 @SpringBootApplication
 @EnableFeignClients
 @EnableDiscoveryClient

@@ -1,4 +1,4 @@
-package xyz.klenkiven.kmall.order.config;
+package xyz.klenkiven.kmall.ware.config;
 
 import com.rabbitmq.client.Channel;
 import org.springframework.amqp.core.*;
@@ -8,19 +8,23 @@ import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import xyz.klenkiven.kmall.order.entity.OrderEntity;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-@EnableRabbit
+/**
+ * RabbitMQ Config
+ * @author klenkiven
+ */
 @Configuration
-public class RabbitConfig {
+@EnableRabbit
+public class RabbitMQConfig {
 
-    @RabbitListener(queues = "order.release.order.queue")
-    public void listenRelease(OrderEntity order, Message message, Channel channel) throws IOException {
-        System.out.println("Order is delayed: " + order.getOrderSn());
+    @RabbitListener(queues = "stock.release.stock.queue")
+    public void listenRelease(Message message, Channel channel) throws IOException {
+        System.out.println("Order is delayed: " + new String(message.getBody()));
         channel.basicAck(message.getMessageProperties().getDeliveryTag(), false);
     }
 
@@ -33,14 +37,15 @@ public class RabbitConfig {
     }
 
     /* Business Related Component  */
-    /** orderDelayQueue */
-    @Bean public Queue orderDelayQueue() {
+    /** stockDelayQueue */
+    @Bean public Queue stockDelayQueue() {
         Map<String, Object> argument = new HashMap<>();
-        argument.put("x-dead-letter-exchange", "order-event-exchange");
-        argument.put("x-dead-letter-routing-key", "order.release.order.queue");
-        argument.put("x-message-ttl", 60 * 1000);
+        argument.put("x-dead-letter-exchange", "stock-event-exchange");
+        argument.put("x-dead-letter-routing-key", "stock.release.stock.queue");
+        argument.put("x-message-ttl", 50 * 60 * 1000);
+        System.out.println(argument);
         return new Queue(
-                "order.delay.queue",
+                "stock.delay.queue",
                 true,
                 false,
                 false,
@@ -48,10 +53,10 @@ public class RabbitConfig {
         );
     }
 
-    /** orderReleaseOrderQueue */
-    @Bean public Queue orderReleaseOrderQueue() {
+    /** stockReleaseStockQueue */
+    @Bean public Queue stockReleaseStockQueue() {
         return new Queue(
-                "order.release.order.queue",
+                "stock.release.stock.queue",
                 true,
                 false,
                 false,
@@ -59,35 +64,36 @@ public class RabbitConfig {
         );
     }
 
-    /** orderEventExchange */
-    @Bean public Exchange orderEventExchange() {
+    /** stock-event-exchange */
+    @Bean public Exchange stockEventExchange() {
         return new TopicExchange(
-                "order-event-exchange",
+                "stock-event-exchange",
                 true,
                 false,
                 null
         );
     }
 
-    /** orderCreateOrderBinding */
-    @Bean public Binding orderCreateOrderBinding() {
+    /** Stock Release Binding */
+    @Bean public Binding stockReleaseBinding() {
         return new Binding(
-                "order.delay.queue",
+                "stock.release.stock.queue",
                 Binding.DestinationType.QUEUE,
-                "order-event-exchange",
-                "order.create.order",
+                "stock-event-exchange",
+                "stock.release.#",
                 null
         );
     }
 
-    /** orderReleaseOrderBinding */
-    @Bean public Binding orderReleaseOrderBinding() {
+    /** Stock Locked Binding */
+    @Bean public Binding stockLockedBinding() {
         return new Binding(
-                "order.release.order.queue",
+                "stock.delay.queue",
                 Binding.DestinationType.QUEUE,
-                "order-event-exchange",
-                "order.release.order",
+                "stock-event-exchange",
+                "stock.locked",
                 null
         );
     }
+
 }
