@@ -39,5 +39,11 @@ public interface OrderService extends IService<OrderEntity> {
      * @return order
      */
     OrderEntity getOrderByOrderSn(String orderSn);
+
+    /**
+     * When order is timeout, need to close order
+     * @param order order entity
+     */
+    void closeOrder(OrderEntity order);
 }
 

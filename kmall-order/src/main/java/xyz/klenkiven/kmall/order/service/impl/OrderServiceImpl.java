@@ -3,6 +3,8 @@ package xyz.klenkiven.kmall.order.service.impl;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,7 @@ import xyz.klenkiven.kmall.common.constant.OrderConstant;
 import xyz.klenkiven.kmall.common.exception.NoStockException;
 import xyz.klenkiven.kmall.common.to.SkuHasStockTO;
 import xyz.klenkiven.kmall.common.to.UserLoginTO;
+import xyz.klenkiven.kmall.common.to.mq.OrderTO;
 import xyz.klenkiven.kmall.common.utils.PageUtils;
 import xyz.klenkiven.kmall.common.utils.Query;
 
@@ -36,6 +39,7 @@ import xyz.klenkiven.kmall.order.dao.OrderDao;
 import xyz.klenkiven.kmall.order.dao.OrderItemDao;
 import xyz.klenkiven.kmall.order.entity.OrderEntity;
 import xyz.klenkiven.kmall.order.entity.OrderItemEntity;
+import xyz.klenkiven.kmall.order.enume.OrderStatusEnum;
 import xyz.klenkiven.kmall.order.feign.CartFeignService;
 import xyz.klenkiven.kmall.order.feign.MemberFeignService;
 import xyz.klenkiven.kmall.order.feign.ProductFeignService;
@@ -59,6 +63,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     private final ProductFeignService productFeignService;
 
     private final StringRedisTemplate redisTemplate;
+    private final RabbitTemplate rabbitTemplate;
     private final Executor executor;
 
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
@@ -186,10 +191,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             throw  new NoStockException();
         }
 
-        int i = 10/0;
-
+        // Success and Send to MQ
         result.setOrder(orderCreate.getOrder());
         result.setCode(0);
+        rabbitTemplate.convertAndSend(
+                "order-event-exchange",
+                "order.create.order",
+                orderCreate.getOrder()
+        );
         return result;
     }
 
@@ -199,6 +208,27 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
                 new QueryWrapper<OrderEntity>()
                         .eq("order_sn", orderSn)
         );
+    }
+
+    @Override
+    public void closeOrder(OrderEntity order) {
+        // Query for Order Current Status
+        OrderEntity currentOrder = this.getById(order.getId());
+        // Close Order and Set Order Status
+        if (OrderStatusEnum.CREATE_NEW.getCode().equals(currentOrder.getStatus())) {
+            OrderEntity update = new OrderEntity();
+            update.setId(order.getId());
+            update.setStatus(OrderStatusEnum.CANCLED.getCode());
+            this.updateById(update);
+            // Release Order and Notify Ware service to Unlock Stock
+            OrderTO orderTO = new OrderTO();
+            BeanUtils.copyProperties(currentOrder, orderTO);
+            rabbitTemplate.convertAndSend(
+                    "order-event-exchange",
+                    "order.release.other",
+                    orderTO
+            );
+        }
     }
 
     /**
@@ -280,6 +310,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         // Order Entity
         OrderEntity orderEntity = new OrderEntity();
         orderEntity.setOrderSn(orderSn);
+
+        // Set Order Status
+        orderEntity.setStatus(OrderStatusEnum.CREATE_NEW.getCode());
 
         // Member Id
         orderEntity.setMemberId(user.getId());
@@ -378,6 +411,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
                             WareFeignService wareFeignService,
                             ProductFeignService productFeignService,
                             StringRedisTemplate redisTemplate,
+                            RabbitTemplate rabbitTemplate,
                             ThreadPoolExecutor executor) {
         this.orderItemDao = orderItemDao;
         this.memberFeignService = memberFeignService;
@@ -385,6 +419,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         this.wareFeignService = wareFeignService;
         this.productFeignService = productFeignService;
         this.redisTemplate = redisTemplate;
+        this.rabbitTemplate = rabbitTemplate;
         this.executor = executor;
     }
 }

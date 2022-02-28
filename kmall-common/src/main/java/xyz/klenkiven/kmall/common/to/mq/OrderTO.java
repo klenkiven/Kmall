@@ -1,4 +1,4 @@
-package xyz.klenkiven.kmall.ware.vo;
+package xyz.klenkiven.kmall.common.to.mq;
 
 import lombok.Data;
 
@@ -11,7 +11,7 @@ import java.util.Date;
  * @author klenkiven
  */
 @Data
-public class OrderDTO implements Serializable {
+public class OrderTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**

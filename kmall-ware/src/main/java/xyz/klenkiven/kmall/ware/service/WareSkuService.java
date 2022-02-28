@@ -6,6 +6,7 @@ import xyz.klenkiven.kmall.common.utils.PageUtils;
 import xyz.klenkiven.kmall.ware.entity.WareSkuEntity;
 import xyz.klenkiven.kmall.common.to.SkuHasStockTO;
 import xyz.klenkiven.kmall.ware.vo.FareResp;
+import xyz.klenkiven.kmall.common.to.mq.OrderTO;
 import xyz.klenkiven.kmall.ware.vo.WareSkuLockDTO;
 
 import java.util.List;
@@ -47,6 +48,13 @@ public interface WareSkuService extends IService<WareSkuEntity> {
      * Release SKU Stock
      * @param to Stock Locked TO
      */
-    boolean releaseStockLock(StockLockedTO to);
+    void releaseStockLock(StockLockedTO to);
+
+    /**
+     * Order Close Stock
+     * <p>If order is closed and order service in stuck, Order will be never closed.</p>
+     * @param order order
+     */
+    void unlockStock(OrderTO order);
 }
 

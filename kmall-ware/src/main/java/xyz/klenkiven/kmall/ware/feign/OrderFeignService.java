@@ -4,7 +4,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import xyz.klenkiven.kmall.common.utils.Result;
-import xyz.klenkiven.kmall.ware.vo.OrderDTO;
+import xyz.klenkiven.kmall.common.to.mq.OrderTO;
 
 /**
  * Order Feign Service
@@ -17,6 +17,6 @@ public interface OrderFeignService {
      * [FEIGN] Get Order Status
      */
     @GetMapping("/order/order/status/{orderSn}")
-    public Result<OrderDTO> getOrderStatus(@PathVariable String orderSn);
+    public Result<OrderTO> getOrderStatus(@PathVariable String orderSn);
 
 }

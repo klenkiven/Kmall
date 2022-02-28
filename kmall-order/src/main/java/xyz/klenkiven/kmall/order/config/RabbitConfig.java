@@ -18,12 +18,6 @@ import java.util.Map;
 @Configuration
 public class RabbitConfig {
 
-    @RabbitListener(queues = "order.release.order.queue")
-    public void listenRelease(OrderEntity order, Message message, Channel channel) throws IOException {
-        System.out.println("Order is delayed: " + order.getOrderSn());
-        channel.basicAck(message.getMessageProperties().getDeliveryTag(), false);
-    }
-
     /**
      * Use Json Message Converter
      */
@@ -37,7 +31,7 @@ public class RabbitConfig {
     @Bean public Queue orderDelayQueue() {
         Map<String, Object> argument = new HashMap<>();
         argument.put("x-dead-letter-exchange", "order-event-exchange");
-        argument.put("x-dead-letter-routing-key", "order.release.order.queue");
+        argument.put("x-dead-letter-routing-key", "order.release.order");
         argument.put("x-message-ttl", 60 * 1000);
         return new Queue(
                 "order.delay.queue",
@@ -87,6 +81,19 @@ public class RabbitConfig {
                 Binding.DestinationType.QUEUE,
                 "order-event-exchange",
                 "order.release.order",
+                null
+        );
+    }
+
+    /**
+     * Release Order and Notify Ware service to Unlock Stock
+     */
+    @Bean public Binding orderReleaseOtherBinding() {
+        return new Binding(
+                "stock.release.stock.queue",
+                Binding.DestinationType.QUEUE,
+                "order-event-exchange",
+                "order.release.other.#",
                 null
         );
     }

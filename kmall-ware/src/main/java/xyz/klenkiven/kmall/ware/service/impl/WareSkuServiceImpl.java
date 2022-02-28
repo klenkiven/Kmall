@@ -41,7 +41,7 @@ import xyz.klenkiven.kmall.ware.service.WareSkuService;
 import xyz.klenkiven.kmall.common.to.SkuHasStockTO;
 import xyz.klenkiven.kmall.ware.vo.FareResp;
 import xyz.klenkiven.kmall.ware.vo.MemberAddressDTO;
-import xyz.klenkiven.kmall.ware.vo.OrderDTO;
+import xyz.klenkiven.kmall.common.to.mq.OrderTO;
 import xyz.klenkiven.kmall.ware.vo.WareSkuLockDTO;
 
 
@@ -122,7 +122,8 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
     public FareResp getFare(Long addrId) {
         FareResp fareResp = new FareResp();
         MemberAddressDTO data = memberFeignService.getAddress(addrId)
-                        .getData("memberReceiveAddress", new TypeReference<>() {});
+                .getData("memberReceiveAddress", new TypeReference<>() {
+                });
         fareResp.setFare(new BigDecimal(addrId % 12));
         fareResp.setAddress(data);
         return fareResp;
@@ -130,7 +131,7 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
 
     @Override
     @Transactional
-    public boolean releaseStockLock(StockLockedTO to) {
+    public void releaseStockLock(StockLockedTO to) {
         Long taskId = to.getTaskId();
         StockDetailTO detail = to.getTaskDetail();
         Long skuId = detail.getSkuId();
@@ -144,16 +145,17 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
         //              Order State[Non-Canceled]: Need not to Rollback
         //      Detail non-exist in DB: Need not to Rollback
         WareOrderTaskDetailEntity detailEntity = taskDetailService.getById(detailId);
-        if (detailEntity != null) {
+        if (detailEntity != null && detailEntity.getLockStatus() == 1) {
             WareOrderTaskEntity taskEntity = taskService.getById(taskId);
             String orderSn = taskEntity.getOrderSn();
-            Result<OrderDTO> orderResult = orderFeignService.getOrderStatus(orderSn);
+            Result<OrderTO> orderResult = orderFeignService.getOrderStatus(orderSn);
             // Reject and requeue if Status normal
             if (orderResult == null || orderResult.getCode() != 0) {
-                return false;
+                // Some Errors Occur
+                throw new RuntimeException("Some Errors Occur!");
             }
             // order is not exist and order status = 4 [Canceled]
-            OrderDTO order = orderResult.getData();
+            OrderTO order = orderResult.getData();
             if (order == null || order.getStatus() == 4) {
                 // Unlock Stock
                 // TODO need CAS
@@ -163,8 +165,26 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
                 }
             }
         }
+    }
 
-        return true;
+    @Override
+    public void unlockStock(OrderTO order) {
+        // Get newest task status
+        OrderTO currentOrder =
+                orderFeignService.getOrderStatus(order.getOrderSn()).getData();
+        WareOrderTaskEntity taskEntity = taskService.getTaskByOrderSn(currentOrder.getOrderSn());
+
+        // When Task Detail not execute, then do release
+        List<WareOrderTaskDetailEntity> detailList =
+                taskDetailService.getNotExecutedTaskDetailByTaskId(taskEntity.getId());
+        for (WareOrderTaskDetailEntity taskDetailEntity : detailList) {
+            unlockStock(
+                    taskDetailEntity.getSkuId(),
+                    taskDetailEntity.getWareId(),
+                    taskDetailEntity.getId(),
+                    taskDetailEntity.getSkuNum()
+            );
+        }
     }
 
     @Override
@@ -232,10 +252,11 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
 
     /**
      * Unlock Stock for Ware
-     * @param skuId sku Id
-     * @param wareId ware id
+     *
+     * @param skuId        sku Id
+     * @param wareId       ware id
      * @param taskDetailId task detail
-     * @param num sku num
+     * @param num          sku num
      */
     private void unlockStock(Long skuId, Long wareId, Long taskDetailId, Integer num) {
         // Unlock for SKU

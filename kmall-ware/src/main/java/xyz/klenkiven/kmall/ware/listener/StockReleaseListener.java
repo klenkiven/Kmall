@@ -9,6 +9,7 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 import xyz.klenkiven.kmall.common.to.mq.StockLockedTO;
 import xyz.klenkiven.kmall.ware.service.WareSkuService;
+import xyz.klenkiven.kmall.common.to.mq.OrderTO;
 
 import java.io.IOException;
 
@@ -35,10 +36,26 @@ public class StockReleaseListener {
                 new String(message.getBody())
         );
         try {
-            boolean success = wareSkuService.releaseStockLock(to);
-            if (success) {
-                channel.basicAck(message.getMessageProperties().getDeliveryTag(), false);
-            }
+            wareSkuService.releaseStockLock(to);
+            channel.basicAck(message.getMessageProperties().getDeliveryTag(), false);
+        } catch (Exception e) {
+            channel.basicReject(message.getMessageProperties().getDeliveryTag(), true);
+        }
+    }
+
+    /**
+     * Listen to RabbitMQ OrderEntity
+     */
+    @RabbitHandler
+    public void handleOrderClose(OrderTO order, Message message, Channel channel) throws IOException {
+        log.info("OrderSn: {} is timeout, Rollback Message: {}",
+                order.getOrderSn(),
+                new String(message.getBody())
+        );
+
+        try {
+            wareSkuService.unlockStock(order);
+            channel.basicAck(message.getMessageProperties().getDeliveryTag(), false);
         } catch (Exception e) {
             channel.basicReject(message.getMessageProperties().getDeliveryTag(), true);
         }
