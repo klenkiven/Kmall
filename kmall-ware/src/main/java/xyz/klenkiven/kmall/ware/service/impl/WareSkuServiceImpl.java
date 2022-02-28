@@ -66,11 +66,12 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
     private final RabbitTemplate rabbitTemplate;
 
     @RabbitHandler
-    public void handleStockRelease(StockLockedTO to, Message message, Channel channel) throws IOException {
-        log.info("Task: {} is Fail, Rollback SKU: {}, SKU Count: {}",
+    public void unlockStockRelease(StockLockedTO to, Message message, Channel channel) throws IOException {
+        log.info("Task: {} is Fail, Rollback SKU: {}, SKU Count: {}, Message: {}",
                 to.getTaskId(),
                 to.getTaskDetail().getSkuId(),
-                to.getTaskDetail().getSkuNum()
+                to.getTaskDetail().getSkuNum(),
+                new String(message.getBody())
         );
         Long taskId = to.getTaskId();
         StockDetailTO detail = to.getTaskDetail();
@@ -94,7 +95,7 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
                 channel.basicReject(message.getMessageProperties().getDeliveryTag(), true);
                 return;
             }
-            // order status = 4 [Canceled]
+            // order is not exist and order status = 4 [Canceled]
             OrderDTO order = orderResult.getData();
             if (order == null || order.getStatus() == 4) {
                 // Unlock Stock

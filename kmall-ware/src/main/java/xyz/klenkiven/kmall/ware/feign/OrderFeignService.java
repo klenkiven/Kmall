@@ -16,7 +16,7 @@ public interface OrderFeignService {
     /**
      * [FEIGN] Get Order Status
      */
-    @GetMapping("/order/order/{orderSn}")
+    @GetMapping("/order/order/status/{orderSn}")
     public Result<OrderDTO> getOrderStatus(@PathVariable String orderSn);
 
 }

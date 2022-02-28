@@ -1,6 +1,7 @@
 package xyz.klenkiven.kmall.order.interceptor;
 
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.servlet.HandlerInterceptor;
 import xyz.klenkiven.kmall.common.constant.AuthConstant;
 import xyz.klenkiven.kmall.common.to.UserLoginTO;
@@ -21,6 +22,12 @@ public class UserLoginInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request,
                              HttpServletResponse response,
                              Object handler) throws Exception {
+        // If FEIGN call, Pass
+        String requestURI = request.getRequestURI();
+        boolean match = new AntPathMatcher().match("/order/order/status/**", requestURI);
+        if (match) { return true; }
+
+        // Do Interceptor for Login
         UserLoginTO userInfo = (UserLoginTO) request.getSession().getAttribute(AuthConstant.LOGIN_USER);
         if (userInfo != null) {
             loginUser.set(userInfo);

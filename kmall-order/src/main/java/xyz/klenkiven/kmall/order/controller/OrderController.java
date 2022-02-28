@@ -30,7 +30,7 @@ public class OrderController {
     /**
      * [FEIGN] Get Order Status
      */
-    @GetMapping("/{orderSn}")
+    @GetMapping("/status/{orderSn}")
     public Result<OrderEntity> getOrderStatus(@PathVariable String orderSn) {
         OrderEntity orderEntity = orderService.getOrderByOrderSn(orderSn);
         return Result.ok(orderEntity);
