@@ -1,6 +1,7 @@
 package xyz.klenkiven.kmall.ware.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import xyz.klenkiven.kmall.common.to.mq.StockLockedTO;
 import xyz.klenkiven.kmall.common.utils.PageUtils;
 import xyz.klenkiven.kmall.ware.entity.WareSkuEntity;
 import xyz.klenkiven.kmall.common.to.SkuHasStockTO;
@@ -33,15 +34,19 @@ public interface WareSkuService extends IService<WareSkuEntity> {
 
     /**
      * Get Fare
-     * @return
      */
     FareResp getFare(Long addrId);
 
     /**
      * Lock Stock for Order
      * @param lock order
-     * @return result
      */
-    Boolean orderLockStock(WareSkuLockDTO lock);
+    void orderLockStock(WareSkuLockDTO lock);
+
+    /**
+     * Release SKU Stock
+     * @param to Stock Locked TO
+     */
+    boolean releaseStockLock(StockLockedTO to);
 }
 

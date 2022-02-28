@@ -1,20 +1,15 @@
 package xyz.klenkiven.kmall.ware.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.rabbitmq.client.Channel;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.core.Message;
-import org.springframework.amqp.rabbit.annotation.RabbitHandler;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +19,7 @@ import java.util.stream.Collectors;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.springframework.transaction.annotation.Transactional;
 import xyz.klenkiven.kmall.common.to.mq.StockDetailTO;
 import xyz.klenkiven.kmall.common.to.mq.StockLockedTO;
 import xyz.klenkiven.kmall.common.utils.PageUtils;
@@ -50,7 +46,6 @@ import xyz.klenkiven.kmall.ware.vo.WareSkuLockDTO;
 
 
 @Service("wareSkuService")
-@RabbitListener(queues = "stock.release.stock.queue")
 @RequiredArgsConstructor
 public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> implements WareSkuService {
 
@@ -64,48 +59,6 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
     private final WareOrderTaskDetailService taskDetailService;
 
     private final RabbitTemplate rabbitTemplate;
-
-    @RabbitHandler
-    public void unlockStockRelease(StockLockedTO to, Message message, Channel channel) throws IOException {
-        log.info("Task: {} is Fail, Rollback SKU: {}, SKU Count: {}, Message: {}",
-                to.getTaskId(),
-                to.getTaskDetail().getSkuId(),
-                to.getTaskDetail().getSkuNum(),
-                new String(message.getBody())
-        );
-        Long taskId = to.getTaskId();
-        StockDetailTO detail = to.getTaskDetail();
-        Long skuId = detail.getSkuId();
-        Long detailId = detail.getId();
-        // Unlock Logic
-        // 1. Query Stock Detail in DB
-        //      Detail exist in DB:
-        //          Order is Not-Exist: Unlock Stock
-        //          Order is Exist:
-        //              Order State[Canceled]: Unlock Stock
-        //              Order State[Non-Canceled]: Need not to Rollback
-        //      Detail non-exist in DB: Need not to Rollback
-        WareOrderTaskDetailEntity detailEntity = taskDetailService.getById(detailId);
-        if (detailEntity != null) {
-            WareOrderTaskEntity taskEntity = taskService.getById(taskId);
-            String orderSn = taskEntity.getOrderSn();
-            Result<OrderDTO> orderResult = orderFeignService.getOrderStatus(orderSn);
-            // Reject and requeue if Status normal
-            if (orderResult == null || orderResult.getCode() != 0) {
-                channel.basicReject(message.getMessageProperties().getDeliveryTag(), true);
-                return;
-            }
-            // order is not exist and order status = 4 [Canceled]
-            OrderDTO order = orderResult.getData();
-            if (order == null || order.getStatus() == 4) {
-                // Unlock Stock
-                unlockStock(skuId, taskEntity.getWareId(),
-                        detailEntity.getSkuId(), detailEntity.getSkuNum());
-            }
-        }
-        // End Whole Process
-        channel.basicAck(message.getMessageProperties().getDeliveryTag(), false);
-    }
 
     @Override
     public PageUtils queryPage(Map<String, Object> params) {
@@ -176,10 +129,46 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
     }
 
     @Override
-    public Boolean orderLockStock(WareSkuLockDTO lock) {
-//        System.out.println(RootContext.entries().toString());
-//        log.info("start RM Transation XID: {}, Branch TYpe: {}", RootContext.getXID(), RootContext.getBranchType());
+    @Transactional
+    public boolean releaseStockLock(StockLockedTO to) {
+        Long taskId = to.getTaskId();
+        StockDetailTO detail = to.getTaskDetail();
+        Long skuId = detail.getSkuId();
+        Long detailId = detail.getId();
+        // Unlock Logic
+        // 1. Query Stock Detail in DB
+        //      Detail exist in DB:
+        //          Order is Not-Exist: Unlock Stock
+        //          Order is Exist:
+        //              Order State[Canceled]: Unlock Stock
+        //              Order State[Non-Canceled]: Need not to Rollback
+        //      Detail non-exist in DB: Need not to Rollback
+        WareOrderTaskDetailEntity detailEntity = taskDetailService.getById(detailId);
+        if (detailEntity != null) {
+            WareOrderTaskEntity taskEntity = taskService.getById(taskId);
+            String orderSn = taskEntity.getOrderSn();
+            Result<OrderDTO> orderResult = orderFeignService.getOrderStatus(orderSn);
+            // Reject and requeue if Status normal
+            if (orderResult == null || orderResult.getCode() != 0) {
+                return false;
+            }
+            // order is not exist and order status = 4 [Canceled]
+            OrderDTO order = orderResult.getData();
+            if (order == null || order.getStatus() == 4) {
+                // Unlock Stock
+                // TODO need CAS
+                if (detailEntity.getLockStatus() == 1) {
+                    unlockStock(skuId, detailEntity.getWareId(),
+                            detailEntity.getId(), detailEntity.getSkuNum());
+                }
+            }
+        }
 
+        return true;
+    }
+
+    @Override
+    public void orderLockStock(WareSkuLockDTO lock) {
         // Save Order Task
         WareOrderTaskEntity task = new WareOrderTaskEntity();
         task.setOrderSn(lock.getOrderSn());
@@ -239,9 +228,6 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
                 throw new NoStockException(skuId);
             }
         }
-
-        // Success
-        return true;
     }
 
     /**
@@ -252,7 +238,12 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
      * @param num sku num
      */
     private void unlockStock(Long skuId, Long wareId, Long taskDetailId, Integer num) {
+        // Unlock for SKU
         this.baseMapper.unlockStock(skuId, wareId, num);
+        // Change Status for Task
+        WareOrderTaskDetailEntity taskDetail = taskDetailService.getById(taskDetailId);
+        taskDetail.setLockStatus(2); // Set to Unlock Status
+        taskDetailService.updateById(taskDetail);
     }
 
     @Data
