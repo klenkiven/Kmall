@@ -10,6 +10,8 @@ import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -48,6 +50,7 @@ import xyz.klenkiven.kmall.order.interceptor.UserLoginInterceptor;
 import xyz.klenkiven.kmall.order.model.dto.*;
 import xyz.klenkiven.kmall.order.model.form.OrderSubmitForm;
 import xyz.klenkiven.kmall.order.model.vo.OrderConfirmVO;
+import xyz.klenkiven.kmall.order.model.vo.PayVO;
 import xyz.klenkiven.kmall.order.model.vo.SubmitResultVO;
 import xyz.klenkiven.kmall.order.service.OrderService;
 
@@ -229,6 +232,17 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
                     orderTO
             );
         }
+    }
+
+    @Override
+    public PayVO getOrderPay(String orderSn) {
+        PayVO payVO = new PayVO();
+        OrderEntity order = this.getOrderByOrderSn(orderSn);
+        payVO.setOut_trade_no(orderSn);
+        payVO.setTotal_amount(order.getTotalAmount().setScale(2, RoundingMode.UP).toString());
+        payVO.setSubject("Kmall Payment");
+        payVO.setBody(order.getNote() + new Date());
+        return payVO;
     }
 
     /**

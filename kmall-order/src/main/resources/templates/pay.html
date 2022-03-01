@@ -14,7 +14,7 @@
           <a href="http://auth.kmall.com/login.html" style="color: red;"
              th:if="${session.loginUser == null}">你好，欢迎登录</a>
           <a th:if="${session.loginUser != null}" >你好，[[${session.loginUser.nickname}]]</a>
-          <li>我的订单</li>
+          <li><a href="http://member.kmall.com/memberOrder.html">我的订单</a></li>
           <li>支付帮助</li>
         </ul>
       </div>
@@ -102,7 +102,9 @@
             <img src="/static/order/pay/img/weixin.png" alt="">微信支付
           </li>
 		  <li>
-            <img src="/static/order/pay/img/zhifubao.png" style="weight:auto;height:30px;" alt="">支付宝
+            <a th:href="'http://order.kmall.com/payOrder?orderSn=' + ${submitResult.getOrder().getOrderSn()}">
+              <img src="/static/order/pay/img/zhifubao.png" style="weight:auto;height:30px;" alt="">支付宝
+            </a>
           </li>
         </ul>
       </div>

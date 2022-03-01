@@ -5,6 +5,7 @@ import xyz.klenkiven.kmall.common.utils.PageUtils;
 import xyz.klenkiven.kmall.order.entity.OrderEntity;
 import xyz.klenkiven.kmall.order.model.form.OrderSubmitForm;
 import xyz.klenkiven.kmall.order.model.vo.OrderConfirmVO;
+import xyz.klenkiven.kmall.order.model.vo.PayVO;
 import xyz.klenkiven.kmall.order.model.vo.SubmitResultVO;
 
 import java.util.Map;
@@ -45,5 +46,12 @@ public interface OrderService extends IService<OrderEntity> {
      * @param order order entity
      */
     void closeOrder(OrderEntity order);
+
+    /**
+     * Get Current Order's Payment Information
+     * @param orderSn order sequence number
+     * @return payment info
+     */
+    PayVO getOrderPay(String orderSn);
 }
 
