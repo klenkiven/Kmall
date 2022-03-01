@@ -2,19 +2,36 @@ server:
   port: 7300
 
 spring:
+  application:
+    name: kmall-member
+
+  # DataSource
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/kmall_ums?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
     username: root
     password: root
 
+  # Thymeleaf Config
+  thymeleaf:
+    cache: false
+
+  # Spring Session with Redis
+  redis:
+    host: 172.17.0.1
+    port: 6379
+  session:
+    store-type: redis
+    timeout: 30m
+    redis:
+      flush-mode: on_save
+      namespace: spring:session
+
   # Spring Cloud Alibaba Nacos
   cloud:
     nacos:
       discovery:
         server-addr: localhost:8848
-  application:
-    name: kmall-member
 
 #mybatis
 mybatis-plus:
@@ -23,3 +40,9 @@ mybatis-plus:
     db-config:
       # 主键自增策略
       id-type: AUTO
+
+# Kmall Thread Pool
+kmall.thread:
+  idle: 50
+  maxSize: 200
+  keepAlive: 20

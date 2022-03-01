@@ -62,6 +62,12 @@ spring:
           filters:
             - RewritePath=/api/(?<segment>.*),/$\{segment}
 
+        # Kmall Member Route
+        - id: kmall_member
+          uri: lb://kmall-member
+          predicates:
+            - Host=member.kmall.com
+
         # Kmall Order Route
         - id: kmall_order
           uri: lb://kmall-order

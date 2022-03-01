@@ -1,4 +1,4 @@
-package xyz.klenkiven.kmall.order.interceptor;
+package xyz.klenkiven.kmall.member.interceptor;
 
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
@@ -24,7 +24,7 @@ public class UserLoginInterceptor implements HandlerInterceptor {
                              Object handler) throws Exception {
         // If FEIGN call, Pass
         String requestURI = request.getRequestURI();
-        boolean match = new AntPathMatcher().match("/order/**", requestURI);
+        boolean match = new AntPathMatcher().match("/member/**", requestURI);
         if (match) { return true; }
 
         // Do Interceptor for Login
