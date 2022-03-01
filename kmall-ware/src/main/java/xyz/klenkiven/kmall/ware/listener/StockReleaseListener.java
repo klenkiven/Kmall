@@ -12,6 +12,7 @@ import xyz.klenkiven.kmall.ware.service.WareSkuService;
 import xyz.klenkiven.kmall.common.to.mq.OrderTO;
 
 import java.io.IOException;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Listener for Stock Release
@@ -47,7 +48,7 @@ public class StockReleaseListener {
      * Listen to RabbitMQ OrderEntity
      */
     @RabbitHandler
-    public void handleOrderClose(OrderTO order, Message message, Channel channel) throws IOException {
+    public void handleOrderClose(OrderTO order, Message message, Channel channel) throws IOException, TimeoutException {
         log.info("OrderSn: {} is timeout, Rollback Message: {}",
                 order.getOrderSn(),
                 new String(message.getBody())
@@ -58,6 +59,8 @@ public class StockReleaseListener {
             channel.basicAck(message.getMessageProperties().getDeliveryTag(), false);
         } catch (Exception e) {
             channel.basicReject(message.getMessageProperties().getDeliveryTag(), true);
+        } finally {
+            channel.close();
         }
     }
 

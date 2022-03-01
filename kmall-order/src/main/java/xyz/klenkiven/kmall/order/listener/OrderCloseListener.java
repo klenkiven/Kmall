@@ -1,7 +1,6 @@
 package xyz.klenkiven.kmall.order.listener;
 
 import com.rabbitmq.client.Channel;
-import org.bouncycastle.jcajce.provider.asymmetric.ec.KeyFactorySpi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
