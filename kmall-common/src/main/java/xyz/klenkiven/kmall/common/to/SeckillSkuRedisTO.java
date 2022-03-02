@@ -1,11 +1,9 @@
-package xyz.klenkiven.kmall.seckill.model.to;
+package xyz.klenkiven.kmall.common.to;
 
 import lombok.Data;
-import xyz.klenkiven.kmall.seckill.model.dto.SkuInfoDTO;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.util.Date;
 
 /**
  * Seckill Save To Redis
@@ -53,7 +51,7 @@ public class SeckillSkuRedisTO implements Serializable {
     /**
      * SKU info
      */
-    private SkuInfoDTO skuInfo;
+    private SkuInfoTO skuInfo;
 
     /**
      * Session Start Time

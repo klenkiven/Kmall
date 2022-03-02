@@ -12,7 +12,10 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
+import xyz.klenkiven.kmall.common.to.SeckillSkuRedisTO;
+import xyz.klenkiven.kmall.common.utils.Result;
 import xyz.klenkiven.kmall.product.entity.CategoryEntity;
+import xyz.klenkiven.kmall.product.feign.SeckillFeignService;
 import xyz.klenkiven.kmall.product.service.CategoryService;
 import xyz.klenkiven.kmall.product.vo.Catalog2VO;
 
@@ -31,14 +34,18 @@ import java.util.concurrent.locks.Lock;
 public class IndexController {
 
     private final CategoryService categoryService;
+
+    private final SeckillFeignService seckillFeignService;
+
     private final RedissonClient redissonClient;
     private final StringRedisTemplate redisTemplate;
 
     @RequestMapping({"/", "/index.html"})
     public String indexPage(Model model) {
         List<CategoryEntity> categoryList = categoryService.listCategoryByLevel(1);
-        log.info("{}", categoryList);
+        Result<List<SeckillSkuRedisTO>> currentSeckillSkus = seckillFeignService.getCurrentSeckillSkus();
         model.addAttribute("category", categoryList);
+        model.addAttribute("currentSeckillSkus", currentSeckillSkus);
         return "index";
     }
 

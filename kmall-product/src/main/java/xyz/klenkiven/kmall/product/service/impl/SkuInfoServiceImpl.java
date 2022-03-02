@@ -14,13 +14,16 @@ import java.util.concurrent.ThreadPoolExecutor;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import xyz.klenkiven.kmall.common.to.SeckillSkuRedisTO;
 import xyz.klenkiven.kmall.common.utils.PageUtils;
 import xyz.klenkiven.kmall.common.utils.Query;
 
+import xyz.klenkiven.kmall.common.utils.Result;
 import xyz.klenkiven.kmall.product.dao.SkuInfoDao;
 import xyz.klenkiven.kmall.product.entity.SkuImagesEntity;
 import xyz.klenkiven.kmall.product.entity.SkuInfoEntity;
 import xyz.klenkiven.kmall.product.entity.SpuInfoDescEntity;
+import xyz.klenkiven.kmall.product.feign.SeckillFeignService;
 import xyz.klenkiven.kmall.product.service.*;
 import xyz.klenkiven.kmall.product.vo.SkuItemVO;
 
@@ -33,6 +36,8 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
     private final SpuInfoDescService spuInfoDescService;
     private final AttrGroupService attrGroupService;
     private final SkuSaleAttrValueService skuSaleAttrValueService;
+
+    private final SeckillFeignService seckillFeignService;
 
     private final ThreadPoolExecutor executor;
 
@@ -109,8 +114,16 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
             skuItemVO.setImages(imgList);
         }, executor);
 
+        CompletableFuture<Void> seckillFuture = CompletableFuture.runAsync(() -> {
+            // Get if in seckill list
+            Result<SeckillSkuRedisTO> skuSeckill = seckillFeignService.getSkuSeckill(skuId);
+            if (skuSeckill.getCode() == 0 && skuSeckill.getData() != null) {
+                skuItemVO.setSeckillSku(skuSeckill.getData());
+            }
+        }, executor);
+
         // Wait All Jobs DONE
-        CompletableFuture.allOf(saleFuture, descriptionFuture, baseAttrFuture, skuImgFuture).join();
+        CompletableFuture.allOf(saleFuture, descriptionFuture, baseAttrFuture, skuImgFuture, seckillFuture).join();
 
         return skuItemVO;
     }
