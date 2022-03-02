@@ -1,15 +1,13 @@
 package xyz.klenkiven.kmall.coupon.controller;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import xyz.klenkiven.kmall.common.utils.Result;
 import xyz.klenkiven.kmall.coupon.entity.SeckillSessionEntity;
 import xyz.klenkiven.kmall.coupon.service.SeckillSessionService;
 import xyz.klenkiven.kmall.common.utils.PageUtils;
@@ -29,6 +27,15 @@ import xyz.klenkiven.kmall.common.utils.R;
 public class SeckillSessionController {
     @Autowired
     private SeckillSessionService seckillSessionService;
+
+    /**
+     * [FEIGN] Get Session in latest 3 days
+     */
+    @GetMapping("/latest-3-days-session")
+    public Result<List<SeckillSessionEntity>> latest3DaysSession() {
+        List<SeckillSessionEntity> result = seckillSessionService.getLatest3DaysSession();
+        return Result.ok(result);
+    }
 
     /**
      * 列表

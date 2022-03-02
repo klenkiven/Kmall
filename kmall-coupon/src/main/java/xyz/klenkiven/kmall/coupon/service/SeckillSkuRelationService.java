@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import xyz.klenkiven.kmall.common.utils.PageUtils;
 import xyz.klenkiven.kmall.coupon.entity.SeckillSkuRelationEntity;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -16,5 +17,12 @@ import java.util.Map;
 public interface SeckillSkuRelationService extends IService<SeckillSkuRelationEntity> {
 
     PageUtils queryPage(Map<String, Object> params);
+
+    /**
+     * Get Sku by Session ID
+     * @param id Session ID
+     * @return Related SKU Entity
+     */
+    List<SeckillSkuRelationEntity> listRelationSkusBySessionId(Long id);
 }
 

@@ -16,8 +16,8 @@ import java.util.Date;
  * <p>Async Task Auto Configuration: {@link org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration}</p>
  */
 @Component
-@EnableScheduling
-@EnableAsync
+//@EnableScheduling
+//@EnableAsync
 public class HelloSchedule {
 
     public static final Logger log = LoggerFactory.getLogger(HelloSchedule.class);
@@ -31,7 +31,7 @@ public class HelloSchedule {
      *          spring.task.scheduling.pool.size
      *      3. Make Scheduled Job Method run as Async
      */
-    @Scheduled(cron = "* * * * * ?")
+    @Scheduled(cron = "0 0 0 1 1 ?")
     @Async
     public void hello() {
         log.info("Schedule: {}", new Date());

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import xyz.klenkiven.kmall.common.utils.PageUtils;
 import xyz.klenkiven.kmall.coupon.entity.SeckillSessionEntity;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -16,5 +17,11 @@ import java.util.Map;
 public interface SeckillSessionService extends IService<SeckillSessionEntity> {
 
     PageUtils queryPage(Map<String, Object> params);
+
+    /**
+     * Get latest 3 days Session
+     * @return session List
+     */
+    List<SeckillSessionEntity> getLatest3DaysSession();
 }
 
