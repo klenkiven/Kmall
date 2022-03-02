@@ -8,6 +8,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.BoundHashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import xyz.klenkiven.kmall.common.exception.NoStockException;
 import xyz.klenkiven.kmall.common.utils.R;
 import xyz.klenkiven.kmall.seckill.feign.CouponFeignService;
 import xyz.klenkiven.kmall.seckill.feign.ProductFeignService;
@@ -50,23 +51,35 @@ public class SeckillServiceImpl implements SeckillService {
 
     /**
      * Save Session Related Sku
+     *
      * @param seckillSessions session with skus
      */
     private void saveSessionSku(List<SeckillSessionDTO> seckillSessions) {
         seckillSessions.forEach(session -> {
             BoundHashOperations<String, Object, Object> hashOps = redisTemplate.boundHashOps(SECKILL_CACHE_PREFIX);
             session.getRelationSkus().forEach(item -> {
+                String skuId = item.getSkuId().toString();
+                String sessionSkuKey = session.getId() + "_" + skuId;
+
+                // Idempotent Process
+                if (Boolean.TRUE.equals(hashOps.hasKey(sessionSkuKey))) {
+                    return;
+                }
+
                 SeckillSkuRedisTO skuRedis = new SeckillSkuRedisTO();
                 // Save SKU info
                 R result = productFeignService.getSkuInfo(item.getSkuId());
                 if (result.getCode() == 0) {
-                    SkuInfoDTO skuInfo = result.getData("skuInfo", new TypeReference<SkuInfoDTO>() {});
+                    SkuInfoDTO skuInfo = result.getData("skuInfo", new TypeReference<SkuInfoDTO>() {
+                    });
                     skuRedis.setSkuInfo(skuInfo);
                 }
 
                 // Save SKU seckill info
-                skuRedis.setStartTime(session.getStartTime().getTime());
-                skuRedis.setEndTime(session.getEndTime().getTime());
+                Long startTime = session.getStartTime().getTime();
+                Long endTime = session.getEndTime().getTime();
+                skuRedis.setStartTime(startTime);
+                skuRedis.setEndTime(endTime);
                 BeanUtils.copyProperties(item, skuRedis);
 
                 // Random Code for anti-script attack
@@ -79,13 +92,14 @@ public class SeckillServiceImpl implements SeckillService {
                 semaphore.trySetPermits(item.getSeckillCount().intValue());
 
                 String json = JSON.toJSONString(skuRedis);
-                hashOps.put(item.getSkuId().toString(), json);
+                hashOps.put(sessionSkuKey, json);
             });
         });
     }
 
     /**
      * Save Seckill Session in Redis
+     *
      * @param seckillSessions sessions
      */
     private void saveSessionInfo(List<SeckillSessionDTO> seckillSessions) {
@@ -93,10 +107,15 @@ public class SeckillServiceImpl implements SeckillService {
             long startTime = session.getStartTime().getTime();
             long endTime = session.getStartTime().getTime();
             String redisKey = SESSION_CACHE_PREFIX + startTime + "_" + endTime;
+
             // Idempotent Process
-            if (session.getRelationSkus() != null && session.getRelationSkus().size() > 0) {
-                List<String> skuIds = session.getRelationSkus().stream().
-                        map(item -> item.getSkuId().toString()).collect(Collectors.toList());
+            Boolean hasKey = redisTemplate.hasKey(redisKey);
+            if (Boolean.FALSE.equals(hasKey) &&
+                    session.getRelationSkus() != null &&
+                    session.getRelationSkus().size() > 0) {
+                List<String> skuIds = session.getRelationSkus().stream()
+                        .map(item -> item.getPromotionSessionId() + "_" + item.getSkuId())
+                        .collect(Collectors.toList());
                 redisTemplate.opsForList().leftPushAll(redisKey, skuIds);
             }
         });
