@@ -1,5 +1,6 @@
 package xyz.klenkiven.kmall.coupon.service.impl;
 
+import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 import java.util.Map;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -21,6 +22,9 @@ public class SeckillSkuRelationServiceImpl extends ServiceImpl<SeckillSkuRelatio
         IPage<SeckillSkuRelationEntity> page = this.page(
                 new Query<SeckillSkuRelationEntity>().getPage(params),
                 new QueryWrapper<SeckillSkuRelationEntity>()
+                        .eq(params.get("promotionSessionId") != null,
+                                "promotion_session_id",
+                                params.get("promotionSessionId"))
         );
 
         return new PageUtils(page);

@@ -1,0 +1,16 @@
+spring:
+  # Alibaba Nacos
+  cloud:
+    nacos:
+      server-addr: 172.17.0.1:8848
+
+  # Spring Session with Redis
+  redis:
+    host: 172.17.0.1
+    port: 6379
+  session:
+    store-type: redis
+    timeout: 30m
+    redis:
+      flush-mode: on_save
+      namespace: spring:session
