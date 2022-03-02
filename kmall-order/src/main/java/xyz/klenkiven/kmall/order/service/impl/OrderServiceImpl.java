@@ -41,6 +41,7 @@ import xyz.klenkiven.kmall.order.dao.OrderDao;
 import xyz.klenkiven.kmall.order.dao.OrderItemDao;
 import xyz.klenkiven.kmall.order.entity.OrderEntity;
 import xyz.klenkiven.kmall.order.entity.OrderItemEntity;
+import xyz.klenkiven.kmall.order.entity.PaymentInfoEntity;
 import xyz.klenkiven.kmall.order.enume.OrderStatusEnum;
 import xyz.klenkiven.kmall.order.feign.CartFeignService;
 import xyz.klenkiven.kmall.order.feign.MemberFeignService;
@@ -50,15 +51,18 @@ import xyz.klenkiven.kmall.order.interceptor.UserLoginInterceptor;
 import xyz.klenkiven.kmall.order.model.dto.*;
 import xyz.klenkiven.kmall.order.model.form.OrderSubmitForm;
 import xyz.klenkiven.kmall.order.model.vo.OrderConfirmVO;
+import xyz.klenkiven.kmall.order.model.vo.PayReturnVO;
 import xyz.klenkiven.kmall.order.model.vo.PayVO;
 import xyz.klenkiven.kmall.order.model.vo.SubmitResultVO;
 import xyz.klenkiven.kmall.order.service.OrderService;
+import xyz.klenkiven.kmall.order.service.PaymentInfoService;
 
 
 @Service("orderService")
 public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> implements OrderService {
 
     private final OrderItemDao orderItemDao;
+    private final PaymentInfoService paymentInfoService;
 
     private final MemberFeignService memberFeignService;
     private final CartFeignService cartFeignService;
@@ -191,7 +195,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         if (stockResp.getCode() != 0) {
             // Fail to lock and rollback
             log.warn("There is no Stock!");
-            throw  new NoStockException();
+            throw new NoStockException();
         }
 
         // Success and Send to MQ
@@ -243,6 +247,55 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         payVO.setSubject("Kmall Payment");
         payVO.setBody(order.getNote() + new Date());
         return payVO;
+    }
+
+    @Override
+    public PageUtils queryPageWithItem(Map<String, Object> params) {
+        UserLoginTO user = UserLoginInterceptor.loginUser.get();
+
+        // Get order list
+        IPage<OrderEntity> page = this.page(
+                new Query<OrderEntity>().getPage(params),
+                new QueryWrapper<OrderEntity>()
+                        .eq("member_id", user.getId())
+                        .orderByDesc("id")
+        );
+
+        // Fill with order items
+        List<OrderEntity> fatRecords = page.getRecords().stream()
+                .peek((order -> {
+                    List<OrderItemEntity> orderItems = orderItemDao.selectList(
+                            new QueryWrapper<OrderItemEntity>().eq("order_sn", order.getOrderSn())
+                    );
+                    order.setOrderItem(orderItems);
+                })).collect(Collectors.toList());
+        page.setRecords(fatRecords);
+        return new PageUtils(page);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public String handlePayResult(PayReturnVO payReturn) {
+        // Save Trade Info
+        PaymentInfoEntity paymentInfo = new PaymentInfoEntity();
+        paymentInfo.setOrderSn(payReturn.getOut_trade_no());
+        paymentInfo.setAlipayTradeNo(payReturn.getTrade_no());
+        paymentInfo.setTotalAmount(payReturn.getTotal_amount());
+        paymentInfo.setConfirmTime(payReturn.getTimestamp());
+        paymentInfo.setSubject(paymentInfo.getSubject());
+        // TODO Async Alipay Callback
+        paymentInfo.setPaymentStatus("TRADE_SUCCESS");
+        paymentInfo.setCallbackTime(payReturn.getTimestamp());
+        paymentInfoService.save(paymentInfo);
+
+        // Update Alipay payment status
+        // Verify Signature
+        int effectRow = baseMapper.updateOrderStatus(payReturn.getOut_trade_no(), OrderStatusEnum.PAYED.getCode());
+        if (effectRow > 0) {
+            return "success";
+        }
+
+        return "fail";
     }
 
     /**
@@ -420,6 +473,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
 
     public OrderServiceImpl(OrderItemDao orderItemDao,
+                            PaymentInfoService paymentInfoService,
                             MemberFeignService memberFeignService,
                             CartFeignService cartFeignService,
                             WareFeignService wareFeignService,
@@ -428,6 +482,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
                             RabbitTemplate rabbitTemplate,
                             ThreadPoolExecutor executor) {
         this.orderItemDao = orderItemDao;
+        this.paymentInfoService = paymentInfoService;
         this.memberFeignService = memberFeignService;
         this.cartFeignService = cartFeignService;
         this.wareFeignService = wareFeignService;

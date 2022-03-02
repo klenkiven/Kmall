@@ -5,6 +5,7 @@ import xyz.klenkiven.kmall.common.utils.PageUtils;
 import xyz.klenkiven.kmall.order.entity.OrderEntity;
 import xyz.klenkiven.kmall.order.model.form.OrderSubmitForm;
 import xyz.klenkiven.kmall.order.model.vo.OrderConfirmVO;
+import xyz.klenkiven.kmall.order.model.vo.PayReturnVO;
 import xyz.klenkiven.kmall.order.model.vo.PayVO;
 import xyz.klenkiven.kmall.order.model.vo.SubmitResultVO;
 
@@ -53,5 +54,19 @@ public interface OrderService extends IService<OrderEntity> {
      * @return payment info
      */
     PayVO getOrderPay(String orderSn);
+
+    /**
+     * Query Order and Its Items
+     * @param params params
+     * @return OrderDetail
+     */
+    PageUtils queryPageWithItem(Map<String, Object> params);
+
+    /**
+     * Handle Alipay Return Callback
+     * @param payReturn alipay callback argument
+     * @return result
+     */
+    String handlePayResult(PayReturnVO payReturn);
 }
 

@@ -24,7 +24,7 @@ public class UserLoginInterceptor implements HandlerInterceptor {
                              Object handler) throws Exception {
         // If FEIGN call, Pass
         String requestURI = request.getRequestURI();
-        boolean match = new AntPathMatcher().match("/order/**", requestURI);
+        boolean match = new AntPathMatcher().match("/order/order/status/**", requestURI);
         if (match) { return true; }
 
         // Do Interceptor for Login

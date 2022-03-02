@@ -8,8 +8,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import xyz.klenkiven.kmall.order.config.AlipayTemplate;
+import xyz.klenkiven.kmall.order.model.vo.PayReturnVO;
 import xyz.klenkiven.kmall.order.model.vo.PayVO;
 import xyz.klenkiven.kmall.order.service.OrderService;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
+import java.util.Map;
 
 /**
  * Pay Related Operation Controller
@@ -31,6 +36,14 @@ public class PayWebController {
         PayVO payVO = orderService.getOrderPay(orderSn);
         // It will return a html page (For short default success)
         return alipayTemplate.pay(payVO);
+    }
+
+    @GetMapping("/return/paySuccess")
+    public String returnPaySuccess(PayReturnVO payReturn) {
+        // Stimulate Alipay Async
+        String result = orderService.handlePayResult(payReturn);
+        log.info("Order : {} is paid, Alipay status: {}", payReturn.getOut_trade_no(), result);
+        return "redirect:http://member.kmall.com/memberOrder.html";
     }
 
     public PayWebController(AlipayTemplate alipayTemplate,

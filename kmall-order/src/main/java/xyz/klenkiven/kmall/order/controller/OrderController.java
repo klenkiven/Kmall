@@ -37,6 +37,16 @@ public class OrderController {
     }
 
     /**
+     * [FEIGN] 列表
+     */
+    @PostMapping("/listWithItem")
+    // @RequiresPermissions("order:orderitem:list")
+    public Result<PageUtils> listOrderItem(@RequestBody Map<String, Object> params){
+        PageUtils page = orderService.queryPageWithItem(params);
+        return Result.ok(page);
+    }
+
+    /**
      * 列表
      */
     @RequestMapping("/list")
