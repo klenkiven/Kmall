@@ -1,6 +1,7 @@
 package xyz.klenkiven.kmall.product.vo;
 
 import lombok.Data;
+import xyz.klenkiven.kmall.common.to.SeckillSkuRedisTO;
 import xyz.klenkiven.kmall.product.entity.SkuImagesEntity;
 import xyz.klenkiven.kmall.product.entity.SkuInfoEntity;
 import xyz.klenkiven.kmall.product.entity.SpuInfoDescEntity;
@@ -43,6 +44,11 @@ public class SkuItemVO {
      * SPU specification attribute info
      */
     private List<SpuItemBaseGroupAttrVO> groupAttrs;
+
+    /**
+     * Seckill Info
+     */
+    private SeckillSkuRedisTO seckillSku;
 
 
     /**

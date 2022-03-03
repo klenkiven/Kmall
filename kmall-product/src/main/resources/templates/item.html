@@ -179,13 +179,12 @@
 									<span>￥</span>
 									<span th:text="${#numbers.formatDecimal(item.getInfo().getPrice(), 3, 2)}">4499.00</span>
 								</li>
-								<li>
-								 
+								<li style="color: red" th:if="${item.getSeckillSku()!=null}">
+									SKU will seckill at
+								 	[[${#dates.format(new java.util.Date(item.seckillSku.startTime), "yyyy-MM-dd HH:mm:ss")}]]
 								</li>
-								<li>
-									<a href="">
-										 
-									</a>
+								<li style="color: red" th:if="${item.getSeckillSku()!=null}">
+										Seckill Price:  [[${#numbers.formatDecimal(item.getSeckillSku().getSeckillPrice(), 1, 2)}]]
 								</li>
 							</ul>
 						</div>
