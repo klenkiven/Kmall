@@ -1,6 +1,7 @@
 package xyz.klenkiven.kmall.order.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import xyz.klenkiven.kmall.common.to.mq.SeckillOrderTO;
 import xyz.klenkiven.kmall.common.utils.PageUtils;
 import xyz.klenkiven.kmall.order.entity.OrderEntity;
 import xyz.klenkiven.kmall.order.model.form.OrderSubmitForm;
@@ -68,5 +69,10 @@ public interface OrderService extends IService<OrderEntity> {
      * @return result
      */
     String handlePayResult(PayReturnVO payReturn);
+
+    /**
+     * Handle Seckill Created Order
+     */
+    void createSeckillOrder(SeckillOrderTO seckill);
 }
 

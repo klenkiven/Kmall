@@ -1,16 +1,12 @@
 package xyz.klenkiven.kmall.order.config;
 
-import com.rabbitmq.client.Channel;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import xyz.klenkiven.kmall.order.entity.OrderEntity;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,6 +23,32 @@ public class RabbitConfig {
     }
 
     /* Business Related Component  */
+    /**
+     * Order Seckill Queue for Absorb Huge Traffic at a time
+     */
+    @Bean public Queue orderSeckillOrderQueue() {
+        return new Queue(
+                "order.seckill.order.queue",
+                true,
+                false,
+                false,
+                null
+        );
+    }
+
+    /**
+     * Biding for Order Event Exchange to Order Seckill Queue
+     */
+    @Bean public Binding orderSeckillOrder() {
+        return new Binding(
+                "order.seckill.order.queue",
+                Binding.DestinationType.QUEUE,
+                "order-event-exchange",
+                "order.seckill.order",
+                null
+        );
+    }
+
     /** orderDelayQueue */
     @Bean public Queue orderDelayQueue() {
         Map<String, Object> argument = new HashMap<>();

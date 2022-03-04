@@ -14,3 +14,14 @@ spring:
     redis:
       flush-mode: on_save
       namespace: spring:session
+
+  # RabbitMQ
+  rabbitmq:
+    host: 172.17.0.1
+    port: 5672
+    virtual-host: /kmall
+    username: guest
+    password: guest
+    listener:
+      simple:
+        acknowledge-mode: manual

@@ -6,12 +6,14 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang.StringUtils;
 import org.redisson.api.RSemaphore;
 import org.redisson.api.RedissonClient;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.BoundHashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import xyz.klenkiven.kmall.common.to.SkuInfoTO;
 import xyz.klenkiven.kmall.common.to.UserLoginTO;
+import xyz.klenkiven.kmall.common.to.mq.SeckillOrderTO;
 import xyz.klenkiven.kmall.common.utils.R;
 import xyz.klenkiven.kmall.seckill.feign.CouponFeignService;
 import xyz.klenkiven.kmall.seckill.feign.ProductFeignService;
@@ -20,6 +22,7 @@ import xyz.klenkiven.kmall.seckill.model.dto.SeckillSessionDTO;
 import xyz.klenkiven.kmall.common.to.SeckillSkuRedisTO;
 import xyz.klenkiven.kmall.seckill.service.SeckillService;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -36,6 +39,7 @@ public class SeckillServiceImpl implements SeckillService {
     private final CouponFeignService couponFeignService;
     private final ProductFeignService productFeignService;
     private final StringRedisTemplate redisTemplate;
+    private final RabbitTemplate rabbitTemplate;
 
     private final RedissonClient redissonClient;
 
@@ -93,7 +97,7 @@ public class SeckillServiceImpl implements SeckillService {
 
     @Override
     public SeckillSkuRedisTO getSkuSeckill(Long skuID) {
-        BoundHashOperations<String,String, String> hashOps = redisTemplate.boundHashOps(SECKILL_SKU_CACHE);
+        BoundHashOperations<String, String, String> hashOps = redisTemplate.boundHashOps(SECKILL_SKU_CACHE);
         Set<String> keys = hashOps.keys();
         if (keys != null && keys.size() > 0) {
             for (String key : keys) {
@@ -121,9 +125,11 @@ public class SeckillServiceImpl implements SeckillService {
         UserLoginTO user = UserLoginInterceptor.loginUser.get();
 
         // Get Seckill SKU Detail Information
-        BoundHashOperations<String, String, String> hashOps = redisTemplate.boundHashOps(SESSION_CACHE_PREFIX);
+        BoundHashOperations<String, String, String> hashOps = redisTemplate.boundHashOps(SECKILL_SKU_CACHE);
         String json = hashOps.get(killId);
-        if (StringUtils.isEmpty(json)) { return null; }
+        if (StringUtils.isEmpty(json)) {
+            return null;
+        }
         SeckillSkuRedisTO skuRedisTO = JSON.parseObject(json, SeckillSkuRedisTO.class);
 
         // Verify its legitimacy
@@ -148,22 +154,34 @@ public class SeckillServiceImpl implements SeckillService {
         // Verify User's Idempotent
         String userSeckillKey = SECKILL_USER_PREFIX + user.getId() + "_" + killId;
         long expire = endTime - currentTime + 60 * 1000;
-        Boolean userRedunduntOp = redisTemplate.opsForValue().setIfAbsent(userSeckillKey, num.toString(),
+        Boolean userRedundantOp = redisTemplate.opsForValue().setIfAbsent(userSeckillKey, num.toString(),
                 expire, TimeUnit.MILLISECONDS);
-        if (Boolean.TRUE.equals(userRedunduntOp)) {
+        if (Boolean.FALSE.equals(userRedundantOp)) {
             return null;
         }
 
         // Do Seckill
-        RSemaphore lock = redissonClient.getSemaphore(SKU_STOCK_CACHE_PREFIX);
-        try {
-            lock.tryAcquire(num, 100, TimeUnit.MILLISECONDS);
-            // Success and Return OrderSN
-            return IdWorker.getTimeId();
-        } catch (InterruptedException e) {
-            // Fail to seckill
+        RSemaphore lock = redissonClient.getSemaphore(SKU_STOCK_CACHE_PREFIX + key);
+        boolean success = lock.tryAcquire(num);
+        if (!success) {
             return null;
         }
+        // Success and Return OrderSN
+        String timeId = IdWorker.getTimeId();
+
+        // Send Message to Rabbit
+        SeckillOrderTO seckillOrderTO = new SeckillOrderTO();
+        seckillOrderTO.setOrderSn(timeId);
+        seckillOrderTO.setMemberId(user.getId());
+        seckillOrderTO.setNum(new BigDecimal(num));
+        BeanUtils.copyProperties(skuRedisTO, seckillOrderTO);
+        rabbitTemplate.convertAndSend(
+                "order-event-exchange",
+                "order.seckill.order",
+                seckillOrderTO
+        );
+
+        return timeId;
     }
 
     /**
@@ -241,10 +259,12 @@ public class SeckillServiceImpl implements SeckillService {
     public SeckillServiceImpl(CouponFeignService couponFeignService,
                               ProductFeignService productFeignService,
                               StringRedisTemplate redisTemplate,
+                              RabbitTemplate rabbitTemplate,
                               RedissonClient redissonClient) {
         this.couponFeignService = couponFeignService;
         this.productFeignService = productFeignService;
         this.redisTemplate = redisTemplate;
+        this.rabbitTemplate = rabbitTemplate;
         this.redissonClient = redissonClient;
     }
 }

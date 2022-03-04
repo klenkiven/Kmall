@@ -1,10 +1,12 @@
 package xyz.klenkiven.kmall.order.service.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
+import org.checkerframework.checker.units.qual.m;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
+import org.springframework.core.annotation.Order;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
@@ -33,6 +35,7 @@ import xyz.klenkiven.kmall.common.exception.NoStockException;
 import xyz.klenkiven.kmall.common.to.SkuHasStockTO;
 import xyz.klenkiven.kmall.common.to.UserLoginTO;
 import xyz.klenkiven.kmall.common.to.mq.OrderTO;
+import xyz.klenkiven.kmall.common.to.mq.SeckillOrderTO;
 import xyz.klenkiven.kmall.common.utils.PageUtils;
 import xyz.klenkiven.kmall.common.utils.Query;
 
@@ -296,6 +299,34 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         }
 
         return "fail";
+    }
+
+    @Override
+    public void createSeckillOrder(SeckillOrderTO seckill) {
+        // Save Order
+        OrderEntity order = new OrderEntity();
+        order.setMemberId(seckill.getMemberId());
+        order.setOrderSn(seckill.getOrderSn());
+        // Set Status
+        order.setStatus(OrderStatusEnum.CREATE_NEW.getCode());
+        // Pay Price
+        BigDecimal payPrice = seckill.getSeckillPrice().multiply(seckill.getNum());
+        order.setPayAmount(payPrice);
+        this.save(order);
+
+        // Save Order Item
+        OrderItemEntity orderItemEntity = new OrderItemEntity();
+        orderItemEntity.setOrderSn(order.getOrderSn());
+        orderItemEntity.setRealAmount(payPrice);
+        orderItemEntity.setSkuQuantity(seckill.getNum().intValue());
+        orderItemDao.insert(orderItemEntity);
+
+        // Success and Send to MQ
+        rabbitTemplate.convertAndSend(
+                "order-event-exchange",
+                "order.create.order",
+                order
+        );
     }
 
     /**
