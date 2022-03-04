@@ -27,4 +27,13 @@ public interface SeckillService {
      * @return seckill sku info
      */
     SeckillSkuRedisTO getSkuSeckill(Long skuID);
+
+    /**
+     * SecKill Core Serve Method
+     * @param killId kill id
+     * @param key random key
+     * @param num buy num
+     * @return order SN
+     */
+    String kill(String killId, String key, Integer num);
 }

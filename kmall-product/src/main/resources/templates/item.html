@@ -183,7 +183,7 @@
 									SKU will seckill at
 								 	[[${#dates.format(new java.util.Date(item.seckillSku.startTime), "yyyy-MM-dd HH:mm:ss")}]]
 								</li>
-								<li style="color: red" th:if="${item.getSeckillSku()!=null}">
+								<li style="color: red" th:if="${#dates.createNow().getTime() >= item.seckillSku.startTime && #dates.createNow().getTime() < item.seckillSku.endTime}">
 										Seckill Price:  [[${#numbers.formatDecimal(item.getSeckillSku().getSeckillPrice(), 1, 2)}]]
 								</li>
 							</ul>
@@ -264,7 +264,7 @@
 						<div class="box-btns clear">
 							<div class="box-btns-one">
 								<form id="itemForm" action="http://cart.kmall.com/addToCart" method="get">
-									<input type="text" name="num" id=""  value="1"/>
+									<input type="text" name="num" id="num-input"  value="1"/>
 									<input type="hidden" name="skuId"  th:value="${item.getInfo().getSkuId()}" />
 
 									<div class="box-btns-one1">
@@ -283,10 +283,18 @@
 									</div>
 								</form>
 							</div>
-							<div id="cartBtn"  style="cursor:pointer;"  canClick="1"  onclick="addToCart(this)" class="box-btns-two">
-
-								放入购物车
-
+							<div style="cursor:pointer;"
+								 canClick="1"
+								 class="box-btns-two">
+								<span id="seckill-btn"
+									  th:attr="skuId=${item.info.skuId}, sessionId=${item.seckillSku.promotionSessionId}, code=${item.seckillSku.randomCode}"
+									  th:if="${#dates.createNow().getTime() >= item.seckillSku.startTime && #dates.createNow().getTime() < item.seckillSku.endTime}">
+									Kill Now
+								</span>
+								<span id="cartBtn" onclick="addToCart(this)"
+									  th:if="${#dates.createNow().getTime() < item.seckillSku.startTime || #dates.createNow().getTime() >= item.seckillSku.endTime}">
+									放入购物车
+								</span>
 							</div>
 						</div>
 
@@ -566,6 +574,19 @@
             }
             $("#itemForm").submit();
         }
+
+		$("#seckill-btn").click(function () {
+			// Login Check
+			var isLogin = [[${session.loginUser != null}]]
+			if (!isLogin) {
+				alert("Please Login")
+			}
+			// Redirect to kill page
+			let killId = $(this).attr("sessionId") + '_' + $(this).attr("skuId")
+			let key = $(this).attr("code")
+			let num = $("#num-input").val()
+			window.location.href="http://seckill.kmall.com/kill?killId="+killId+"&key="+key+"&num="+num;
+		})
 		//
         // function switchSkuId() {
         //     // 被选中属性

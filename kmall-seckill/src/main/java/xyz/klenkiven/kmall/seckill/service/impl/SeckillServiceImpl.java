@@ -1,7 +1,9 @@
 package xyz.klenkiven.kmall.seckill.service.impl;
 
 import com.alibaba.fastjson.JSON;
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.lang.StringUtils;
 import org.redisson.api.RSemaphore;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
@@ -9,14 +11,17 @@ import org.springframework.data.redis.core.BoundHashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import xyz.klenkiven.kmall.common.to.SkuInfoTO;
+import xyz.klenkiven.kmall.common.to.UserLoginTO;
 import xyz.klenkiven.kmall.common.utils.R;
 import xyz.klenkiven.kmall.seckill.feign.CouponFeignService;
 import xyz.klenkiven.kmall.seckill.feign.ProductFeignService;
+import xyz.klenkiven.kmall.seckill.interceptor.UserLoginInterceptor;
 import xyz.klenkiven.kmall.seckill.model.dto.SeckillSessionDTO;
 import xyz.klenkiven.kmall.common.to.SeckillSkuRedisTO;
 import xyz.klenkiven.kmall.seckill.service.SeckillService;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -24,8 +29,9 @@ import java.util.stream.Collectors;
 public class SeckillServiceImpl implements SeckillService {
 
     private static final String SESSION_CACHE_PREFIX = "seckill:sessions:";
-    private static final String SECKILL_SKU_CACHE_PREFIX = "seckill:skus";
+    private static final String SECKILL_SKU_CACHE = "seckill:skus";
     private static final String SKU_STOCK_CACHE_PREFIX = "seckill:stock:";
+    private static final String SECKILL_USER_PREFIX = "seckill:user:";
 
     private final CouponFeignService couponFeignService;
     private final ProductFeignService productFeignService;
@@ -67,7 +73,7 @@ public class SeckillServiceImpl implements SeckillService {
             if (startTime <= currentTime && currentTime <= endTime) {
                 // Get Skus
                 BoundHashOperations<String, String, Object> hashOps =
-                        redisTemplate.boundHashOps(SECKILL_SKU_CACHE_PREFIX);
+                        redisTemplate.boundHashOps(SECKILL_SKU_CACHE);
                 List<String> sessionSkuIdList = redisTemplate.opsForList().range(key, -100, 100);
                 List<Object> list = hashOps.multiGet(sessionSkuIdList);
                 if (list != null) {
@@ -87,7 +93,7 @@ public class SeckillServiceImpl implements SeckillService {
 
     @Override
     public SeckillSkuRedisTO getSkuSeckill(Long skuID) {
-        BoundHashOperations<String,String, String> hashOps = redisTemplate.boundHashOps(SECKILL_SKU_CACHE_PREFIX);
+        BoundHashOperations<String,String, String> hashOps = redisTemplate.boundHashOps(SECKILL_SKU_CACHE);
         Set<String> keys = hashOps.keys();
         if (keys != null && keys.size() > 0) {
             for (String key : keys) {
@@ -100,7 +106,7 @@ public class SeckillServiceImpl implements SeckillService {
                             seckillSkuRedis.getStartTime() < currentTime &&
                             currentTime < seckillSkuRedis.getEndTime()) {
                         return seckillSkuRedis;
-                    } else if (seckillSkuRedis != null && seckillSkuRedis.getStartTime() < currentTime) {
+                    } else if (seckillSkuRedis != null && seckillSkuRedis.getStartTime() > currentTime) {
                         seckillSkuRedis.setRandomCode(null);
                         return seckillSkuRedis;
                     }
@@ -110,6 +116,56 @@ public class SeckillServiceImpl implements SeckillService {
         return null;
     }
 
+    @Override
+    public String kill(String killId, String key, Integer num) {
+        UserLoginTO user = UserLoginInterceptor.loginUser.get();
+
+        // Get Seckill SKU Detail Information
+        BoundHashOperations<String, String, String> hashOps = redisTemplate.boundHashOps(SESSION_CACHE_PREFIX);
+        String json = hashOps.get(killId);
+        if (StringUtils.isEmpty(json)) { return null; }
+        SeckillSkuRedisTO skuRedisTO = JSON.parseObject(json, SeckillSkuRedisTO.class);
+
+        // Verify its legitimacy
+        // Verify Time
+        Long startTime = skuRedisTO.getStartTime();
+        Long endTime = skuRedisTO.getEndTime();
+        long currentTime = new Date().getTime();
+        if (startTime > currentTime || endTime <= currentTime) {
+            return null;
+        }
+        // Verify Random code
+        String skuSessionId = skuRedisTO.getPromotionSessionId() + "_" + skuRedisTO.getSkuId();
+        if (!key.equals(skuRedisTO.getRandomCode()) || !killId.equals(skuSessionId)) {
+            return null;
+        }
+
+        // Verify Quantity
+        if (num <= 0 || num > skuRedisTO.getSeckillCount().intValue()) {
+            return null;
+        }
+
+        // Verify User's Idempotent
+        String userSeckillKey = SECKILL_USER_PREFIX + user.getId() + "_" + killId;
+        long expire = endTime - currentTime + 60 * 1000;
+        Boolean userRedunduntOp = redisTemplate.opsForValue().setIfAbsent(userSeckillKey, num.toString(),
+                expire, TimeUnit.MILLISECONDS);
+        if (Boolean.TRUE.equals(userRedunduntOp)) {
+            return null;
+        }
+
+        // Do Seckill
+        RSemaphore lock = redissonClient.getSemaphore(SKU_STOCK_CACHE_PREFIX);
+        try {
+            lock.tryAcquire(num, 100, TimeUnit.MILLISECONDS);
+            // Success and Return OrderSN
+            return IdWorker.getTimeId();
+        } catch (InterruptedException e) {
+            // Fail to seckill
+            return null;
+        }
+    }
+
     /**
      * Save Session Related Sku
      *
@@ -117,7 +173,7 @@ public class SeckillServiceImpl implements SeckillService {
      */
     private void saveSessionSku(List<SeckillSessionDTO> seckillSessions) {
         seckillSessions.forEach(session -> {
-            BoundHashOperations<String, Object, Object> hashOps = redisTemplate.boundHashOps(SECKILL_SKU_CACHE_PREFIX);
+            BoundHashOperations<String, Object, Object> hashOps = redisTemplate.boundHashOps(SECKILL_SKU_CACHE);
             session.getRelationSkus().forEach(item -> {
                 String skuId = item.getSkuId().toString();
                 String sessionSkuKey = session.getId() + "_" + skuId;
