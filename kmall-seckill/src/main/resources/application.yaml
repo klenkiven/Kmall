@@ -4,6 +4,10 @@ spring:
     nacos:
       server-addr: 172.17.0.1:8848
 
+  # Thymeleaf
+  thymeleaf:
+    cache: false
+
   # Spring Session with Redis
   redis:
     host: 172.17.0.1

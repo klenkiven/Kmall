@@ -183,7 +183,7 @@
 									SKU will seckill at
 								 	[[${#dates.format(new java.util.Date(item.seckillSku.startTime), "yyyy-MM-dd HH:mm:ss")}]]
 								</li>
-								<li style="color: red" th:if="${#dates.createNow().getTime() >= item.seckillSku.startTime && #dates.createNow().getTime() < item.seckillSku.endTime}">
+								<li style="color: red" th:if="${item.seckillSku!=null && #dates.createNow().getTime() >= item.seckillSku.startTime && #dates.createNow().getTime() < item.seckillSku.endTime}">
 										Seckill Price:  [[${#numbers.formatDecimal(item.getSeckillSku().getSeckillPrice(), 1, 2)}]]
 								</li>
 							</ul>
@@ -288,11 +288,11 @@
 								 class="box-btns-two">
 								<span id="seckill-btn"
 									  th:attr="skuId=${item.info.skuId}, sessionId=${item.seckillSku.promotionSessionId}, code=${item.seckillSku.randomCode}"
-									  th:if="${#dates.createNow().getTime() >= item.seckillSku.startTime && #dates.createNow().getTime() < item.seckillSku.endTime}">
+									  th:if="${item.seckillSku!=null && #dates.createNow().getTime() >= item.seckillSku.startTime && #dates.createNow().getTime() < item.seckillSku.endTime}">
 									Kill Now
 								</span>
 								<span id="cartBtn" onclick="addToCart(this)"
-									  th:if="${#dates.createNow().getTime() < item.seckillSku.startTime || #dates.createNow().getTime() >= item.seckillSku.endTime}">
+									  th:if="${item.seckillSku == null || (#dates.createNow().getTime() < item.seckillSku.startTime || #dates.createNow().getTime() >= item.seckillSku.endTime)}">
 									放入购物车
 								</span>
 							</div>

@@ -312,6 +312,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         // Pay Price
         BigDecimal payPrice = seckill.getSeckillPrice().multiply(seckill.getNum());
         order.setPayAmount(payPrice);
+        order.setTotalAmount(payPrice);
         this.save(order);
 
         // Save Order Item
