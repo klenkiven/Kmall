@@ -10,6 +10,10 @@ import org.springframework.context.annotation.Configuration;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * RabbitMQ Component
+ * <p><strong>Note:</strong>Who listen to it, who is responsible to create it</p>
+ */
 @EnableRabbit
 @Configuration
 public class RabbitConfig {
