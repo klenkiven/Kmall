@@ -48,6 +48,16 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
 
+  # Zipkin Trace Visible
+  zipkin:
+    base-url: 'http://172.17.0.1:9411'
+    discovery-client-enabled: false
+    sender:
+      type: web
+  sleuth:
+    sampler:
+      probability: 1
+
 #mybatis
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
@@ -55,6 +65,7 @@ mybatis-plus:
     db-config:
       # 主键自增策略
       id-type: AUTO
+
 
 kmall.thread:
   idle: 50
