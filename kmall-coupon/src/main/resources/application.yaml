@@ -8,11 +8,16 @@ spring:
     username: root
     password: root
 
-  # Alibaba Nacos Service Discovery
   cloud:
+    # Alibaba Nacos Service Discovery
     nacos:
       discovery:
         server-addr: localhost:8848
+    # Alibaba Sentinel
+    sentinel:
+      transport:
+        port: 8719
+        dashboard: localhost:8080
   application:
     name: kmall-coupon
 

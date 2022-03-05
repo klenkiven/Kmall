@@ -1,8 +1,14 @@
 spring:
-  # Alibaba Nacos
   cloud:
+    # Alibaba Nacos
     nacos:
       server-addr: 172.17.0.1:8848
+
+    # Alibaba Sentinel
+    sentinel:
+      transport:
+        port: 8719
+        dashboard: localhost:8080
 
   # Thymeleaf
   thymeleaf:
@@ -29,3 +35,8 @@ spring:
     listener:
       simple:
         acknowledge-mode: manual
+management:
+  endpoints:
+    web:
+      exposure:
+        include: *

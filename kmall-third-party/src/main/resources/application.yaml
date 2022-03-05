@@ -2,11 +2,16 @@ server:
   port: 7700
 
 spring:
-  # Alibaba Nacos Service Discovery
   cloud:
+    # Alibaba Nacos Service Discovery
     nacos:
       discovery:
         server-addr: localhost:8848
+    # Alibaba Sentinel
+    sentinel:
+      transport:
+        port: 8719
+        dashboard: localhost:8080
   application:
     name: kmall-third-party
 

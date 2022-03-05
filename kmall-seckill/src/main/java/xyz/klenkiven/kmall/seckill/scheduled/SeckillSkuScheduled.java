@@ -34,7 +34,7 @@ public class SeckillSkuScheduled {
     /**
      * Upload Seckill SKU Latest 3 days
      */
-    @Scheduled(cron = "*/3 * * * * ?")
+    @Scheduled(cron = "0 * * * * ?")
     public void uploadSeckillSkuLatest3Day() {
         log.info("Upload Seckill SKU at {}", new Date());
         // Distributed Lock

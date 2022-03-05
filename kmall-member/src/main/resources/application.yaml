@@ -27,11 +27,16 @@ spring:
       flush-mode: on_save
       namespace: spring:session
 
-  # Spring Cloud Alibaba Nacos
   cloud:
+    # Alibaba Nacos Service Discovery
     nacos:
       discovery:
         server-addr: localhost:8848
+    # Alibaba Sentinel
+    sentinel:
+      transport:
+        port: 8719
+        dashboard: localhost:8080
 
 #mybatis
 mybatis-plus:
